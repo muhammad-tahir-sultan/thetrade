@@ -4,7 +4,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTrading } from "@/hooks/useTrading";
-import { LogOut, LayoutDashboard, History, Settings, Menu, X } from "lucide-react";
+import { LogOut, LayoutDashboard, History, Settings, Menu as MenuIcon, Grid, X } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -39,13 +39,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
 
     const navItems = [
-        { label: "Overview", icon: LayoutDashboard, href: "/dashboard" },
+        { label: "Home", icon: LayoutDashboard, href: "/dashboard" },
         { label: "History", icon: History, href: "/dashboard/history" },
+        { label: "Menu", icon: Grid, href: "/dashboard/menu" },
         { label: "Settings", icon: Settings, href: "/dashboard/settings" },
     ];
 
     return (
-        <div className="min-h-screen bg-background text-foreground flex flex-col lg:flex-row overflow-hidden">
+        <div className="min-h-screen bg-background text-foreground flex flex-col lg:flex-row overflow-hidden pb-16 lg:pb-0">
             {/* Mobile Top Header */}
             <header className="flex lg:hidden items-center justify-between p-4 border-b border-secondary/10 bg-background/80 backdrop-blur-md sticky top-0 z-40">
                 <div className="flex items-center gap-2">
@@ -56,7 +57,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onClick={() => setIsSidebarOpen(true)}
                     className="p-2 bg-secondary/5 border border-secondary/10 rounded-xl hover:bg-secondary/10 transition-all cursor-pointer"
                 >
-                    <Menu size={20} />
+                    <MenuIcon size={20} />
                 </button>
             </header>
 
@@ -116,7 +117,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         className="hidden lg:flex fixed top-6 left-6 z-40 p-3 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                         title="Open Sidebar (Ctrl+B)"
                     >
-                        <Menu size={20} />
+                        <MenuIcon size={20} />
                     </button>
                 )}
 
@@ -124,6 +125,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {children}
                 </div>
             </main>
+
+            {/* Mobile Bottom Nav */}
+            <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-xl border-t border-secondary/10 px-6 py-3 z-40 flex items-center justify-between">
+                {navItems.map((item) => (
+                    <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                            "flex flex-col items-center gap-1 transition-all",
+                            pathname === item.href ? "text-primary" : "text-secondary"
+                        )}
+                    >
+                        <item.icon size={22} strokeWidth={pathname === item.href ? 3 : 2} />
+                        <span className="text-[10px] font-black uppercase tracking-widest">{item.label}</span>
+                    </Link>
+                ))}
+            </nav>
 
             {/* Overlay for mobile */}
             {isSidebarOpen && (
