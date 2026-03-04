@@ -1,0 +1,71 @@
+"use client";
+
+import { useState } from "react";
+import { PlusCircle, MinusCircle } from "lucide-react";
+
+interface TransactionFormProps {
+    onAction: (type: "DEPOSIT" | "WITHDRAW", amount: number) => Promise<any>;
+    isPending: boolean;
+}
+
+export function TransactionForm({ onAction, isPending }: TransactionFormProps) {
+    const [amount, setAmount] = useState("");
+    const [error, setError] = useState("");
+
+    const handleAction = async (type: "DEPOSIT" | "WITHDRAW") => {
+        const numericAmount = Number(amount);
+        if (!amount || isNaN(numericAmount) || numericAmount <= 0) {
+            setError("Please enter a valid amount");
+            return;
+        }
+
+        setError("");
+
+        try {
+            await onAction(type, numericAmount);
+            setAmount("");
+        } catch (err: any) {
+            setError(err.message);
+        }
+    };
+
+    return (
+        <div className="p-8 rounded-[2rem] bg-secondary/5 border border-secondary/10">
+            <h3 className="text-xl font-bold mb-6">Quick Actions</h3>
+
+            {error && <div className="p-3 bg-red-500/10 text-red-500 text-xs rounded-xl mb-4 text-center border border-red-500/20">{error}</div>}
+
+            <div className="space-y-4">
+                <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary font-bold">$</span>
+                    <input
+                        type="number"
+                        className="w-full pl-10 pr-6 py-4 bg-background border border-secondary/10 rounded-2xl focus:border-primary/50 outline-none transition-all font-bold text-lg"
+                        placeholder="0.00"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                    />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <button
+                        onClick={() => handleAction("DEPOSIT")}
+                        disabled={isPending}
+                        className="flex items-center justify-center gap-2 py-4 bg-green-500/10 border border-green-500/20 text-green-500 rounded-2xl font-bold hover:bg-green-500/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                    >
+                        <PlusCircle size={20} />
+                        {isPending ? "..." : "Deposit"}
+                    </button>
+                    <button
+                        onClick={() => handleAction("WITHDRAW")}
+                        disabled={isPending}
+                        className="flex items-center justify-center gap-2 py-4 bg-primary/10 border border-primary/20 text-primary rounded-2xl font-bold hover:bg-primary/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                    >
+                        <MinusCircle size={20} />
+                        {isPending ? "..." : "Withdraw"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
