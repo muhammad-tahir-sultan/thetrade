@@ -12,8 +12,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const { status } = useSession();
     const router = useRouter();
     const pathname = usePathname();
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const { role } = useTrading();
+
+    // Default sidebar to open only on desktop sized screens
+    useEffect(() => {
+        if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+            setIsSidebarOpen(true);
+        }
+    }, []);
 
     // Sidebar keyboard shortcut (Ctrl+B)
     useEffect(() => {
