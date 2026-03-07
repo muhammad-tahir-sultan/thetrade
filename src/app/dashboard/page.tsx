@@ -31,6 +31,7 @@ export default function DashboardPage() {
 
                 <div className="space-y-10">
                     <TransactionForm
+                        balance={balance}
                         onAction={async (type, amount) => {
                             toast.promise(createTransaction({ type, amount }), {
                                 loading: `Processing ${type.toLowerCase()}...`,

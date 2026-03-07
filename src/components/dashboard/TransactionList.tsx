@@ -46,7 +46,11 @@ export function TransactionList({ transactions }: TransactionListProps) {
                             <p className={`font-black text-base md:text-lg ${tx.type === "DEPOSIT" ? "text-green-500" : "text-primary"}`}>
                                 {tx.type === "DEPOSIT" ? "+" : "-"}${tx.amount.toLocaleString()}
                             </p>
-                            <p className="text-[9px] md:text-[10px] font-bold tracking-widest uppercase text-secondary/60">{tx.status}</p>
+                            <p className={`text-[9px] md:text-[10px] font-bold tracking-widest uppercase ${
+                                tx.status === 'COMPLETED' ? 'text-green-500/80' : 
+                                tx.status === 'REJECTED' || tx.status === 'FAILED' ? 'text-red-500/80' : 
+                                'text-yellow-500/80'
+                            }`}>{tx.status}</p>
                         </div>
                     </div>
                 ))}

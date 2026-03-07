@@ -23,14 +23,15 @@ export function useTrading() {
         mutationFn: ({ type, amount }: { type: "DEPOSIT" | "WITHDRAW"; amount: number }) =>
             transactionService.createTransaction(type, amount),
         onSuccess: () => {
-            // Invalidate queries to trigger background refresh
             queryClient.invalidateQueries({ queryKey: ["user-me"] });
             queryClient.invalidateQueries({ queryKey: ["transactions"] });
         },
     });
 
     return {
+        user: userQuery.data,
         balance: userQuery.data?.balance || 0,
+        role: userQuery.data?.role || "USER",
         transactions: transactionsQuery.data || [],
         loading: userQuery.isLoading || transactionsQuery.isLoading,
         isProcessing: transactionMutation.isPending,

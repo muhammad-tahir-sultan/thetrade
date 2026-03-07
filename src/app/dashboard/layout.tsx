@@ -4,7 +4,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTrading } from "@/hooks/useTrading";
-import { LogOut, LayoutDashboard, History, Settings, Menu as MenuIcon, Grid, X } from "lucide-react";
+import { LogOut, LayoutDashboard, History, Settings, Menu as MenuIcon, Grid, X, Shield } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const router = useRouter();
     const pathname = usePathname();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const { role } = useTrading();
 
     // Sidebar keyboard shortcut (Ctrl+B)
     useEffect(() => {
@@ -44,6 +45,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { label: "Menu", icon: Grid, href: "/dashboard/menu" },
         { label: "Settings", icon: Settings, href: "/dashboard/settings" },
     ];
+
+    if (role === "ADMIN") {
+        navItems.push({ label: "Admin", icon: Shield, href: "/dashboard/admin" });
+    }
+
 
     return (
         <div className="min-h-screen bg-background text-foreground flex flex-col lg:flex-row overflow-hidden pb-16 lg:pb-0">

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { authService } from "@/lib/services/auth.service";
 import { toast } from "sonner";
@@ -11,6 +12,7 @@ export default function SignupPage() {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const router = useRouter();
@@ -62,14 +64,23 @@ export default function SignupPage() {
 
                 <div className="space-y-2">
                     <label className="text-sm font-semibold ml-1">Password</label>
-                    <input
-                        type="password"
-                        required
-                        className="w-full px-6 py-4 bg-secondary/5 border border-secondary/10 rounded-2xl focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all outline-none"
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
+                    <div className="relative">
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            required
+                            className="w-full px-6 py-4 bg-secondary/5 border border-secondary/10 rounded-2xl focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all outline-none pr-12"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-secondary hover:text-primary transition-colors cursor-pointer"
+                        >
+                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                    </div>
                 </div>
 
                 <button

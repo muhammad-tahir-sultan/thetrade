@@ -6,9 +6,10 @@ import { PlusCircle, MinusCircle } from "lucide-react";
 interface TransactionFormProps {
     onAction: (type: "DEPOSIT" | "WITHDRAW", amount: number) => Promise<any>;
     isPending: boolean;
+    balance: number;
 }
 
-export function TransactionForm({ onAction, isPending }: TransactionFormProps) {
+export function TransactionForm({ onAction, isPending, balance }: TransactionFormProps) {
     const [amount, setAmount] = useState("");
     const [error, setError] = useState("");
 
@@ -16,6 +17,10 @@ export function TransactionForm({ onAction, isPending }: TransactionFormProps) {
         const numericAmount = Number(amount);
         if (!amount || isNaN(numericAmount) || numericAmount <= 0) {
             setError("Please enter a valid amount");
+            return;
+        }
+        if (type === "WITHDRAW" && numericAmount > balance) {
+            setError("Insufficient balance for this withdrawal");
             return;
         }
 
