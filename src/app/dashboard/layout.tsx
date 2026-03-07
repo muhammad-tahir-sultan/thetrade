@@ -4,7 +4,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTrading } from "@/hooks/useTrading";
-import { LogOut, LayoutDashboard, History, Settings, Menu as MenuIcon, Grid, X, Shield } from "lucide-react";
+import { LogOut, LayoutDashboard, History, Settings, Menu as MenuIcon, Zap, X, Shield } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const navItems = [
         { label: "Home", icon: LayoutDashboard, href: "/dashboard" },
         { label: "History", icon: History, href: "/dashboard/history" },
-        { label: "Menu", icon: Grid, href: "/dashboard/menu" },
+        { label: "Grab", icon: Zap, href: "/dashboard/grab" },
         { label: "Settings", icon: Settings, href: "/dashboard/settings" },
     ];
 
