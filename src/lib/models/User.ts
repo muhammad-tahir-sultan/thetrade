@@ -10,6 +10,7 @@ const UserSchema = new Schema({
     maxDailyTasks: { type: Number, default: 25 },
     lastGrabDate: { type: Date, default: Date.now },
     totalCommission: { type: Number, default: 0 },
+    dailyCommission: { type: Number, default: 0 },
     status: { type: String, enum: ["ACTIVE", "FROZEN", "PENDING_COMBO"], default: "ACTIVE" },
     createdAt: { type: Date, default: Date.now },
 });

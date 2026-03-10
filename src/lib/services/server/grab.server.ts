@@ -13,8 +13,14 @@ export const grabServerService = {
         const lastGrab = new Date(user.lastGrabDate);
         if (now.toDateString() !== lastGrab.toDateString()) {
             user.dailyTasksCompleted = 0;
+            user.dailyCommission = 0;
             user.lastGrabDate = now;
         }
+
+        // SANITY CHECK: Initialize missing fields for legacy accounts
+        if (typeof user.dailyTasksCompleted !== 'number') user.dailyTasksCompleted = 0;
+        if (typeof user.dailyCommission !== 'number') user.dailyCommission = 0;
+        if (typeof user.totalCommission !== 'number') user.totalCommission = 0;
 
         // 2. Check Limits
         if (user.dailyTasksCompleted >= user.maxDailyTasks) {
@@ -72,15 +78,23 @@ export const grabServerService = {
         if (!user) throw new Error("User not found");
 
         // If it's a combo, it needs authorization or enough balance
-        if (order.isCombo && !order.isAdminAuthorized) {
-            if (user.balance < order.price) {
-                throw new Error("Balance insufficient for 💎 Combo. Request Instant Unlock now!");
-            }
+        // If it's a regular order, it still needs enough balance to 'pay' for it
+        if (!order.isAdminAuthorized && user.balance < order.price) {
+            const errorMsg = order.isCombo 
+                ? "Balance insufficient for 💎 Combo. Request Instant Unlock now!" 
+                : "Insufficient balance to process this order value.";
+            throw new Error(errorMsg);
         }
+
+        // SANITY CHECK: Initialize missing fields
+        if (typeof user.dailyTasksCompleted !== 'number') user.dailyTasksCompleted = 0;
+        if (typeof user.dailyCommission !== 'number') user.dailyCommission = 0;
+        if (typeof user.totalCommission !== 'number') user.totalCommission = 0;
 
         // Process completion
         user.balance += order.commission;
         user.totalCommission += order.commission;
+        user.dailyCommission += order.commission;
         user.dailyTasksCompleted += 1;
         user.status = "ACTIVE"; // Reset status if it was PENDING_COMBO
         

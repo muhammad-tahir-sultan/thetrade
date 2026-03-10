@@ -55,7 +55,7 @@ export default function AdminDashboard() {
                     <p className="text-secondary font-medium">System overview and manual authorization</p>
                 </div>
                 
-                <button onClick={() => refresh()} disabled={isLoading} className="flex items-center gap-2 px-6 py-3 bg-secondary/10 hover:bg-secondary/20 rounded-xl font-bold transition-all disabled:opacity-50">
+                <button onClick={() => refresh()} disabled={isLoading} className="flex items-center gap-2 px-6 py-3 bg-secondary/10 hover:bg-secondary/20 rounded-xl font-bold transition-all disabled:opacity-50 cursor-pointer">
                     <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} />
                     Refresh
                 </button>
@@ -63,10 +63,10 @@ export default function AdminDashboard() {
 
             {/* Tab System */}
             <div className="flex items-center p-1 bg-secondary/10 rounded-2xl w-fit">
-                <button onClick={() => setActiveTab("TRANSACTIONS")} className={cn("px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all", activeTab === "TRANSACTIONS" ? "bg-white dark:bg-zinc-800 shadow-sm text-primary" : "text-secondary hover:text-primary")}>
+                <button onClick={() => setActiveTab("TRANSACTIONS")} className={cn("px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all cursor-pointer", activeTab === "TRANSACTIONS" ? "bg-white dark:bg-zinc-800 shadow-sm text-primary" : "text-secondary hover:text-primary")}>
                     <ArrowLeftRight size={18} /> Transactions
                 </button>
-                <button onClick={() => setActiveTab("CS_REQUESTS")} className={cn("px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all relative", activeTab === "CS_REQUESTS" ? "bg-white dark:bg-zinc-800 shadow-sm text-primary" : "text-secondary hover:text-primary")}>
+                <button onClick={() => setActiveTab("CS_REQUESTS")} className={cn("px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all relative cursor-pointer", activeTab === "CS_REQUESTS" ? "bg-white dark:bg-zinc-800 shadow-sm text-primary" : "text-secondary hover:text-primary")}>
                     <MessageCircle size={18} /> CS Requests
                     {csRequests.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full font-black border-2 border-background animate-pulse">{csRequests.length}</span>}
                 </button>
@@ -83,6 +83,7 @@ export default function AdminDashboard() {
                                     <th className="p-4 sm:p-6 font-bold text-secondary text-xs uppercase tracking-wider">User</th>
                                     <th className="p-4 sm:p-6 font-bold text-secondary text-xs uppercase tracking-wider">Type</th>
                                     <th className="p-4 sm:p-6 font-bold text-secondary text-xs uppercase tracking-wider">Amount</th>
+                                    <th className="p-4 sm:p-6 font-bold text-secondary text-xs uppercase tracking-wider">Time</th>
                                     <th className="p-4 sm:p-6 font-bold text-secondary text-xs uppercase tracking-wider text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -92,9 +93,13 @@ export default function AdminDashboard() {
                                         <td className="p-4 sm:p-6"><div className="font-bold">{tx.userId?.name}</div><div className="text-xs text-secondary">{tx.userId?.email}</div></td>
                                         <td className="p-4 sm:p-6"><span className={cn("px-2 py-1 rounded-full text-[10px] font-bold", tx.type === "DEPOSIT" ? "bg-green-500/10 text-green-500" : "bg-primary/10 text-primary")}>{tx.type}</span></td>
                                         <td className="p-4 sm:p-6 font-black">${tx.amount.toFixed(2)}</td>
+                                        <td className="p-4 sm:p-6 text-xs font-medium text-secondary">
+                                            {new Date(tx.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} <br/>
+                                            {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </td>
                                         <td className="p-4 sm:p-6 flex items-center justify-end gap-2">
-                                            <button disabled={isUpdating} onClick={() => handleAccept(tx._id)} className="p-2 bg-green-500/10 text-green-500 rounded-xl"><CheckCircle size={18}/></button>
-                                            <button disabled={isUpdating} onClick={() => updateStatus({id: tx._id, status: "REJECTED"})} className="p-2 bg-red-500/10 text-red-500 rounded-xl"><XCircle size={18}/></button>
+                                            <button disabled={isUpdating} onClick={() => handleAccept(tx._id)} className="p-2 bg-green-500/10 text-green-500 rounded-xl cursor-pointer"><CheckCircle size={18}/></button>
+                                            <button disabled={isUpdating} onClick={() => updateStatus({id: tx._id, status: "REJECTED"})} className="p-2 bg-red-500/10 text-red-500 rounded-xl cursor-pointer"><XCircle size={18}/></button>
                                         </td>
                                     </tr>
                                 ))}

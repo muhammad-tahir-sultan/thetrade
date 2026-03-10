@@ -8,14 +8,14 @@ export function GrabStats() {
     const potentialProfit = balance > 0 ? (balance * 0.01).toFixed(2) : "0.00";
 
     return (
-        <div className="grid grid-cols-2 gap-y-6 gap-x-4 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 dark:from-zinc-900 dark:via-black dark:to-zinc-900 rounded-[2.5rem] p-7 border border-white/10 shadow-2xl relative overflow-hidden group">
+        <div className="grid grid-cols-2 gap-y-6 gap-x-4 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 dark:from-zinc-900 dark:via-black dark:to-zinc-900 rounded-[2.5rem] p-7 border border-white/10 shadow-2xl relative overflow-hidden group cursor-pointer">
             <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/10 blur-[60px] rounded-full pointer-events-none group-hover:bg-amber-500/20 transition-all duration-700" />
             <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-primary/5 blur-[60px] rounded-full pointer-events-none" />
             
             <div className="space-y-1 relative z-10 text-center border-r border-white/5">
                 <p className="text-secondary text-[10px] uppercase tracking-widest font-black opacity-60">Today's Earnings</p>
                 <p className="text-2xl font-black text-amber-500 drop-shadow-sm">
-                    ${user?.totalCommission?.toFixed(2) || "0.00"}
+                    ${(user?.dailyCommission || 0).toFixed(2)}
                 </p>
             </div>
             

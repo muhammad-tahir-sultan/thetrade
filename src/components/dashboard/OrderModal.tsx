@@ -52,15 +52,15 @@ export function OrderModal({ order, isOpen, onClose, onComplete, isProcessing, o
                     </div>
                 </div>
 
-                <div className="px-8 pb-10 space-y-8">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-secondary/5 dark:bg-zinc-800/50 p-5 rounded-3xl text-center border border-secondary/10">
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-secondary font-black opacity-60">Value</p>
-                            <p className="text-xl font-black">${order.price.toFixed(2)}</p>
+                <div className="px-8 pt-8 pb-10 space-y-8">
+                    <div className="flex gap-3 items-stretch">
+                        <div className="flex-1 bg-zinc-100 dark:bg-zinc-800/50 p-5 rounded-[2rem] text-center border border-black/5 dark:border-white/5 transition-all hover:border-emerald-500/20 shadow-inner">
+                            <p className="text-[9px] uppercase tracking-[0.2em] text-secondary font-black mb-1 opacity-60">Order Value</p>
+                            <p className="text-lg font-black tracking-tight">${order.price.toFixed(2)}</p>
                         </div>
-                        <div className="bg-amber-500/5 dark:bg-amber-500/10 p-5 rounded-3xl text-center border border-amber-500/20">
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-amber-500 font-black">Commission</p>
-                            <p className="text-xl font-black text-amber-500">+${order.commission.toFixed(2)}</p>
+                        <div className="flex-1 bg-amber-500/10 dark:bg-amber-500/10 p-5 rounded-[2rem] text-center border border-amber-500/20 transition-all hover:bg-amber-500/20 shadow-inner">
+                            <p className="text-[9px] uppercase tracking-[0.2em] text-amber-600 dark:text-amber-500 font-black mb-1">Commission</p>
+                            <p className="text-lg font-black text-amber-600 dark:text-amber-500 tracking-tight">+${order.commission.toFixed(2)}</p>
                         </div>
                     </div>
 
@@ -77,14 +77,14 @@ export function OrderModal({ order, isOpen, onClose, onComplete, isProcessing, o
                             <>
                                 <button 
                                     onClick={onContactCS}
-                                    className="w-full py-5 rounded-[1.5rem] font-black tracking-widest bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white shadow-[0_10px_30px_rgba(245,158,11,0.4)] flex items-center justify-center gap-2 transform active:scale-95 transition-all"
+                                    className="w-full py-5 rounded-[1.5rem] font-black tracking-widest bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white shadow-[0_10px_30px_rgba(245,158,11,0.4)] flex items-center justify-center gap-2 transform active:scale-95 transition-all cursor-pointer"
                                 >
                                     💬 REQUEST INSTANT UNLOCK
                                 </button>
                                 <button 
                                     onClick={onComplete}
                                     disabled={isProcessing}
-                                    className="w-full py-3 text-secondary text-xs font-bold hover:text-primary transition-colors flex items-center justify-center gap-1 opacity-60 hover:opacity-100"
+                                    className="w-full py-3 text-secondary text-xs font-bold hover:text-primary transition-colors flex items-center justify-center gap-1 opacity-60 hover:opacity-100 cursor-pointer"
                                 >
                                     Submit Combo Order Anyway
                                 </button>
@@ -94,11 +94,11 @@ export function OrderModal({ order, isOpen, onClose, onComplete, isProcessing, o
                                 <button 
                                     onClick={onComplete}
                                     disabled={isProcessing}
-                                    className="w-full py-5 rounded-[1.5rem] font-black tracking-widest bg-black dark:bg-white dark:text-black text-white hover:opacity-90 shadow-xl transition-all"
+                                    className="w-full py-5 rounded-[1.5rem] font-black tracking-widest bg-black dark:bg-white dark:text-black text-white hover:opacity-90 shadow-xl transition-all cursor-pointer"
                                 >
                                     {isProcessing ? "PROCESSING..." : "PROCESS TRANSACTION"}
                                 </button>
-                                <button onClick={onClose} className="w-full py-2 text-xs font-bold text-secondary hover:text-primary opacity-50">
+                                <button onClick={onClose} className="w-full py-2 text-xs font-bold text-secondary hover:text-primary opacity-50 cursor-pointer">
                                     Cancel
                                 </button>
                             </>

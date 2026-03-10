@@ -31,6 +31,9 @@ export function useTrading() {
     return {
         user: userQuery.data,
         balance: userQuery.data?.balance || 0,
+        dailyTasksCompleted: userQuery.data?.dailyTasksCompleted || 0,
+        maxDailyTasks: userQuery.data?.maxDailyTasks || 25,
+        dailyCommission: userQuery.data?.dailyCommission || 0,
         role: userQuery.data?.role || "USER",
         transactions: transactionsQuery.data || [],
         loading: userQuery.isLoading || transactionsQuery.isLoading,

@@ -26,6 +26,7 @@ export function CSRequestList({ requests, onResolve, isUpdating }: CSRequestList
                         <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">User</th>
                         <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">Request Type</th>
                         <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">Order Info</th>
+                        <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">Time</th>
                         <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
@@ -54,11 +55,15 @@ export function CSRequestList({ requests, onResolve, isUpdating }: CSRequestList
                                     <span className="text-secondary text-xs font-medium">No order linked</span>
                                 )}
                             </td>
+                            <td className="p-3 sm:p-6 text-xs font-medium text-secondary whitespace-nowrap">
+                                {new Date(req.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} <br/>
+                                {new Date(req.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </td>
                             <td className="p-3 sm:p-6 flex items-center justify-end gap-2">
                                 <button
                                     disabled={isUpdating}
                                     onClick={() => onResolve(req._id)}
-                                    className="px-4 py-2 bg-green-500/10 text-green-500 hover:bg-green-500/20 rounded-xl transition-all font-bold flex items-center gap-2 text-xs"
+                                    className="px-4 py-2 bg-green-500/10 text-green-500 hover:bg-green-500/20 rounded-xl transition-all font-bold flex items-center gap-2 text-xs cursor-pointer"
                                 >
                                     <CheckCircle size={14} /> Resolve (Unlock)
                                 </button>

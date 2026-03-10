@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { grabService } from "@/lib/services/grab.service";
 import { toast } from "sonner";
 
@@ -18,6 +18,7 @@ export function useGrabOrder() {
         mutationFn: (orderId: string) => grabService.completeOrder(orderId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["user-me"] });
+            queryClient.invalidateQueries({ queryKey: ["grab-records"] });
             toast.success("Order completed successfully!");
         },
         onError: (error: any) => {
@@ -38,6 +39,11 @@ export function useGrabOrder() {
         },
     });
 
+    const { data: records, isLoading: isLoadingRecords, refetch: refetchRecords } = useQuery({
+        queryKey: ["grab-records"],
+        queryFn: grabService.getRecords,
+    });
+
     return {
         grabOrder: grabMutation.mutateAsync,
         completeOrder: completeMutation.mutateAsync,
@@ -46,6 +52,9 @@ export function useGrabOrder() {
         isCompleting: completeMutation.isPending,
         isRequesting: csMutation.isPending,
         currentOrder: grabMutation.data?.order,
-        isCombo: grabMutation.data?.isCombo
+        isCombo: grabMutation.data?.isCombo,
+        records: records || [],
+        isLoadingRecords,
+        refetchRecords
     };
 }

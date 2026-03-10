@@ -14,5 +14,10 @@ export const grabService = {
     async requestCS(data: { orderId?: string; message: string; type?: string }) {
         const res = await apiClient.post("/cs/request", data);
         return res.data;
+    },
+
+    async getRecords() {
+        const res = await apiClient.get("/grab/records");
+        return res.data;
     }
 };
