@@ -16,6 +16,7 @@ export function useAdmin() {
             adminService.updateTransactionStatus(id, status),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-pending-transactions"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
         },
     });
 
@@ -30,6 +31,7 @@ export function useAdmin() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-cs-requests"] });
             queryClient.invalidateQueries({ queryKey: ["admin-pending-transactions"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
         },
     });
 

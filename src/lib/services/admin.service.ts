@@ -19,5 +19,10 @@ export const adminService = {
     async updateCSStatus(id: string, data: { status: string; adminRemark?: string }) {
         const response = await apiClient.patch("/admin/cs", { id, ...data });
         return response.data;
+    },
+
+    async getNotificationCount() {
+        const response = await apiClient.get("/admin/notifications");
+        return response.data;
     }
 };

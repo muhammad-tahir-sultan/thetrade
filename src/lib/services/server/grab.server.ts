@@ -8,19 +8,31 @@ export const grabServerService = {
         const user = await User.findById(userId);
         if (!user) throw new Error("User not found");
 
-        // 1. Daily Reset Logic
+        // 1. Daily Reset & Initialization Logic (Robust Date Handling)
         const now = new Date();
-        const lastGrab = new Date(user.lastGrabDate);
-        if (now.toDateString() !== lastGrab.toDateString()) {
+        const lastGrab = user.lastGrabDate ? new Date(user.lastGrabDate) : null;
+        let needsSave = false;
+
+        // Compare dates using YYYY-MM-DD to avoid timezone/toDateString glitches
+        const formatDate = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        
+        if (lastGrab && lastGrab.toString() !== "Invalid Date" && formatDate(now) !== formatDate(lastGrab)) {
             user.dailyTasksCompleted = 0;
             user.dailyCommission = 0;
             user.lastGrabDate = now;
+            needsSave = true;
         }
+        
+        // SANITY CHECK: Ensure counters are never undefined or NaN
+        if (typeof user.dailyTasksCompleted !== 'number' || isNaN(user.dailyTasksCompleted)) { user.dailyTasksCompleted = 0; needsSave = true; }
+        if (typeof user.dailyCommission !== 'number' || isNaN(user.dailyCommission)) { user.dailyCommission = 0; needsSave = true; }
+        if (typeof user.totalCommission !== 'number' || isNaN(user.totalCommission)) { user.totalCommission = 0; needsSave = true; }
+        if (!user.lastGrabDate) { user.lastGrabDate = now; needsSave = true; }
+        if (!user.maxDailyTasks) { user.maxDailyTasks = 25; needsSave = true; }
 
-        // SANITY CHECK: Initialize missing fields for legacy accounts
-        if (typeof user.dailyTasksCompleted !== 'number') user.dailyTasksCompleted = 0;
-        if (typeof user.dailyCommission !== 'number') user.dailyCommission = 0;
-        if (typeof user.totalCommission !== 'number') user.totalCommission = 0;
+        if (needsSave) {
+            await user.save();
+        }
 
         // 2. Check Limits
         if (user.dailyTasksCompleted >= user.maxDailyTasks) {
@@ -95,24 +107,25 @@ export const grabServerService = {
         if (typeof user.dailyCommission !== 'number') user.dailyCommission = 0;
         if (typeof user.totalCommission !== 'number') user.totalCommission = 0;
 
-        // Process completion with ATOMIC updates to avoid stale state issues
-        const updatedUser = await User.findByIdAndUpdate(userId, {
-            $inc: {
-                balance: order.commission,
-                totalCommission: order.commission,
-                dailyCommission: order.commission,
-                dailyTasksCompleted: 1
-            },
-            $set: {
-                status: "ACTIVE",
-                lastGrabDate: new Date() // Ensure reset logic doesn't trigger on same-day tasks
-            }
-        }, { new: true });
+        // Process completion with forceful field updates
+        user.balance = parseFloat((user.balance + order.commission).toFixed(2));
+        user.totalCommission = parseFloat((user.totalCommission + order.commission).toFixed(2));
+        user.dailyCommission = parseFloat((user.dailyCommission + order.commission).toFixed(2));
+        user.dailyTasksCompleted += 1;
+        user.lastGrabDate = new Date();
+        user.status = "ACTIVE";
+        
+        await user.save();
 
         order.status = "COMPLETED";
         await order.save();
 
-        return { order, newBalance: updatedUser.balance };
+        return { 
+            order, 
+            newBalance: user.balance, 
+            dailyTasksCompleted: user.dailyTasksCompleted, 
+            dailyCommission: user.dailyCommission 
+        };
     },
 
     getRandomProduct() {

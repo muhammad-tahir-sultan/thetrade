@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTrading } from "@/hooks/useTrading";
 import { LogOut, LayoutDashboard, History, Settings, Menu as MenuIcon, Zap, X, Shield } from "lucide-react";
+import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const pathname = usePathname();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const { role } = useTrading();
+    const adminNotifications = useAdminNotifications();
 
     // Default sidebar to open only on desktop sized screens
     useEffect(() => {
@@ -100,14 +102,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                "flex items-center gap-4 px-4 py-3 rounded-2xl font-bold transition-all cursor-pointer",
+                                "flex items-center justify-between px-4 py-3 rounded-2xl font-bold transition-all cursor-pointer",
                                 pathname === item.href
                                     ? "bg-primary/10 text-primary shadow-sm"
                                     : "text-secondary hover:bg-secondary/5"
                             )}
                         >
-                            <item.icon size={20} />
-                            <span>{item.label}</span>
+                            <div className="flex items-center gap-4">
+                                <item.icon size={20} />
+                                <span>{item.label}</span>
+                            </div>
+                            {item.label === "Admin" && adminNotifications.count > 0 && (
+                                <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-black bg-red-500 text-white rounded-full animate-pulse shadow-lg shadow-red-500/40">
+                                    {adminNotifications.count}
+                                </span>
+                            )}
                         </Link>
                     ))}
                 </nav>
@@ -146,11 +155,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         key={item.href}
                         href={item.href}
                         className={cn(
-                            "flex flex-col items-center gap-1 transition-all",
+                            "flex flex-col items-center gap-1 transition-all relative",
                             pathname === item.href ? "text-primary" : "text-secondary"
                         )}
                     >
-                        <item.icon size={22} strokeWidth={pathname === item.href ? 3 : 2} />
+                        <div className="relative">
+                            <item.icon size={22} strokeWidth={pathname === item.href ? 3 : 2} />
+                            {item.label === "Admin" && adminNotifications.count > 0 && (
+                                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[14px] h-3.5 px-1 text-[8px] font-black bg-red-500 text-white rounded-full border border-background">
+                                    {adminNotifications.count}
+                                </span>
+                            )}
+                        </div>
                         <span className="text-[10px] font-black uppercase tracking-widest">{item.label}</span>
                     </Link>
                 ))}
