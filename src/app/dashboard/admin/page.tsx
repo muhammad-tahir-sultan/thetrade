@@ -81,25 +81,25 @@ export default function AdminDashboard() {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-secondary/10 bg-secondary/5">
-                                    <th className="p-6 font-bold text-secondary text-sm uppercase tracking-wider">User</th>
-                                    <th className="p-6 font-bold text-secondary text-sm uppercase tracking-wider">Type</th>
-                                    <th className="p-6 font-bold text-secondary text-sm uppercase tracking-wider">Amount</th>
-                                    <th className="p-6 font-bold text-secondary text-sm uppercase tracking-wider">Date</th>
-                                    <th className="p-6 font-bold text-secondary text-sm uppercase tracking-wider text-right">Actions</th>
+                                    <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">User</th>
+                                    <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">Type</th>
+                                    <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">Amount</th>
+                                    <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">Date</th>
+                                    <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {pendingTransactions.map((tx: any) => (
                                     <tr key={tx._id} className="border-b border-secondary/5 hover:bg-secondary/5 transition-colors">
-                                        <td className="p-6">
-                                            <div className="font-bold">{tx.userId?.name || "Unknown"}</div>
-                                            <div className="text-sm text-secondary">{tx.userId?.email || "No email"}</div>
-                                            <div className="text-xs font-semibold mt-1 text-primary flex items-center gap-1">
+                                        <td className="p-3 sm:p-6 whitespace-nowrap">
+                                            <div className="font-bold text-sm sm:text-base">{tx.userId?.name || "Unknown"}</div>
+                                            <div className="text-xs sm:text-sm text-secondary">{tx.userId?.email || "No email"}</div>
+                                            <div className="text-[10px] sm:text-xs font-semibold mt-1 text-primary flex items-center gap-1">
                                                 Balance: ${tx.userId?.balance?.toLocaleString(undefined, { minimumFractionDigits: 2 }) ?? "0.00"}
                                             </div>
                                         </td>
-                                        <td className="p-6">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                        <td className="p-3 sm:p-6 whitespace-nowrap">
+                                            <span className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold ${
                                                 tx.type === "DEPOSIT"
                                                     ? "bg-green-500/10 text-green-500"
                                                     : "bg-primary/10 text-primary"
@@ -107,28 +107,29 @@ export default function AdminDashboard() {
                                                 {tx.type}
                                             </span>
                                         </td>
-                                        <td className="p-6 font-black text-lg">
+                                        <td className="p-3 sm:p-6 font-black text-sm sm:text-lg whitespace-nowrap">
                                             ${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                         </td>
-                                        <td className="p-6 text-secondary text-sm font-medium">
-                                            {new Date(tx.createdAt).toLocaleString()}
+                                        <td className="p-3 sm:p-6 text-secondary text-xs sm:text-sm font-medium whitespace-nowrap">
+                                            {new Date(tx.createdAt).toLocaleDateString()} <br className="sm:hidden" />
+                                            <span className="text-[10px] sm:text-xs opacity-70">{new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                         </td>
-                                        <td className="p-6 flex items-center justify-end gap-2">
+                                        <td className="p-3 sm:p-6 flex items-center justify-end gap-1 sm:gap-2">
                                             <button
                                                 disabled={isUpdating}
                                                 onClick={() => handleAccept(tx._id)}
-                                                className="p-2 bg-green-500/10 text-green-500 hover:bg-green-500/20 rounded-xl transition-all cursor-pointer font-bold flex items-center gap-2"
+                                                className="p-1.5 sm:p-2 bg-green-500/10 text-green-500 hover:bg-green-500/20 rounded-xl transition-all cursor-pointer font-bold flex items-center gap-2"
                                             >
-                                                <CheckCircle size={18} />
-                                                <span className="hidden sm:inline">Accept</span>
+                                                <CheckCircle className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+                                                <span className="hidden xl:inline">Accept</span>
                                             </button>
                                             <button
                                                 disabled={isUpdating}
                                                 onClick={() => handleReject(tx._id)}
-                                                className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-xl transition-all cursor-pointer font-bold flex items-center gap-2"
+                                                className="p-1.5 sm:p-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-xl transition-all cursor-pointer font-bold flex items-center gap-2"
                                             >
-                                                <XCircle size={18} />
-                                                <span className="hidden sm:inline">Reject</span>
+                                                <XCircle className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+                                                <span className="hidden xl:inline">Reject</span>
                                             </button>
                                         </td>
                                     </tr>
