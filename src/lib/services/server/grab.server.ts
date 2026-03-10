@@ -45,13 +45,17 @@ export const grabServerService = {
         // Profit usually 0.5% to 1% of balance
         const baseProfitRate = 0.008; // 0.8%
         const commission = user.balance * baseProfitRate;
-        const price = user.balance * (isCombo ? 2.5 : 0.8); // Combo price is 2.5x balance (stalling them)
+        const price = user.balance * (isCombo ? 2.5 : 0.8);
+
+        // Ensure we don't have orders with 0 price for very low balances
+        const finalPrice = Math.max(parseFloat(price.toFixed(2)), 0.01);
+        const finalCommission = Math.max(parseFloat(commission.toFixed(2)), 0.01);
 
         const newOrder = await GrabOrder.create({
             userId,
             productName: this.getRandomProduct(),
-            price: parseFloat(price.toFixed(2)),
-            commission: parseFloat(commission.toFixed(2)),
+            price: finalPrice,
+            commission: finalCommission,
             isCombo,
             status: "PENDING"
         });
@@ -78,11 +82,11 @@ export const grabServerService = {
         if (!user) throw new Error("User not found");
 
         // If it's a combo, it needs authorization or enough balance
-        // If it's a regular order, it still needs enough balance to 'pay' for it
-        if (!order.isAdminAuthorized && user.balance < order.price) {
-            const errorMsg = order.isCombo 
-                ? "Balance insufficient for 💎 Combo. Request Instant Unlock now!" 
-                : "Insufficient balance to process this order value.";
+        // If it's a regular order, we allow a small grace to prevent getting stuck
+        const balanceNeeded = order.isCombo ? order.price : 0; 
+
+        if (!order.isAdminAuthorized && user.balance < balanceNeeded) {
+            const errorMsg = "Balance insufficient for 💎 Combo. Request Instant Unlock now!";
             throw new Error(errorMsg);
         }
 
@@ -91,19 +95,24 @@ export const grabServerService = {
         if (typeof user.dailyCommission !== 'number') user.dailyCommission = 0;
         if (typeof user.totalCommission !== 'number') user.totalCommission = 0;
 
-        // Process completion
-        user.balance += order.commission;
-        user.totalCommission += order.commission;
-        user.dailyCommission += order.commission;
-        user.dailyTasksCompleted += 1;
-        user.status = "ACTIVE"; // Reset status if it was PENDING_COMBO
-        
-        await user.save();
+        // Process completion with ATOMIC updates to avoid stale state issues
+        const updatedUser = await User.findByIdAndUpdate(userId, {
+            $inc: {
+                balance: order.commission,
+                totalCommission: order.commission,
+                dailyCommission: order.commission,
+                dailyTasksCompleted: 1
+            },
+            $set: {
+                status: "ACTIVE",
+                lastGrabDate: new Date() // Ensure reset logic doesn't trigger on same-day tasks
+            }
+        }, { new: true });
 
         order.status = "COMPLETED";
         await order.save();
 
-        return { order, newBalance: user.balance };
+        return { order, newBalance: updatedUser.balance };
     },
 
     getRandomProduct() {

@@ -4,8 +4,12 @@ import { useTrading } from "@/hooks/useTrading";
 import { cn } from "@/lib/utils";
 
 export function GrabStats() {
-    const { user, balance } = useTrading();
-    const potentialProfit = balance > 0 ? (balance * 0.01).toFixed(2) : "0.00";
+    const { balance, dailyCommission, dailyTasksCompleted, status } = useTrading();
+    
+    // Improved precision for small balances
+    const potentialProfit = balance > 0 
+        ? (balance * 0.01 < 0.01 ? (balance * 0.01).toFixed(4) : (balance * 0.01).toFixed(2)) 
+        : "0.00";
 
     return (
         <div className="grid grid-cols-2 gap-y-6 gap-x-4 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 dark:from-zinc-900 dark:via-black dark:to-zinc-900 rounded-[2.5rem] p-7 border border-white/10 shadow-2xl relative overflow-hidden group cursor-pointer">
@@ -15,7 +19,7 @@ export function GrabStats() {
             <div className="space-y-1 relative z-10 text-center border-r border-white/5">
                 <p className="text-secondary text-[10px] uppercase tracking-widest font-black opacity-60">Today's Earnings</p>
                 <p className="text-2xl font-black text-amber-500 drop-shadow-sm">
-                    ${(user?.dailyCommission || 0).toFixed(2)}
+                    ${dailyCommission.toFixed(2)}
                 </p>
             </div>
             
@@ -38,13 +42,13 @@ export function GrabStats() {
                 <div className="flex items-center justify-center gap-1.5">
                     <div className={cn(
                         "w-2 h-2 rounded-full animate-ping",
-                        user?.status === "ACTIVE" ? "bg-green-500" : "bg-amber-500"
+                        status === "ACTIVE" ? "bg-green-500" : "bg-amber-500"
                     )} />
                     <p className={cn(
                         "text-sm font-black tracking-tighter",
-                        user?.status === "ACTIVE" ? "text-green-500" : "text-amber-500"
+                        status === "ACTIVE" ? "text-green-500" : "text-amber-500"
                     )}>
-                        {user?.status === "PENDING_COMBO" ? "COMBO WAITING" : user?.status || "ACTIVE"}
+                        {status === "PENDING_COMBO" ? "COMBO WAITING" : status || "ACTIVE"}
                     </p>
                 </div>
             </div>

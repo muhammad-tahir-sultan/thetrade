@@ -12,24 +12,43 @@ export async function GET() {
         }
 
         await dbConnect();
-        let user = await User.findById((session.user as any).id).select("-password");
+        const userId = (session.user as any).id;
+        let user = await User.findById(userId).select("-password");
 
         if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-        // MIGRATION: Initialize fields for older accounts if missing
-        let needsUpdate = false;
-        if (user.dailyTasksCompleted === undefined) { user.dailyTasksCompleted = 0; needsUpdate = true; }
-        if (user.maxDailyTasks === undefined) { user.maxDailyTasks = 25; needsUpdate = true; }
-        if (user.dailyCommission === undefined) { user.dailyCommission = 0; needsUpdate = true; }
-        if (user.totalCommission === undefined) { user.totalCommission = 0; needsUpdate = true; }
-        if (!user.lastGrabDate) { user.lastGrabDate = new Date(); needsUpdate = true; }
-        if (!user.status) { user.status = "ACTIVE"; needsUpdate = true; }
+        // BRUTE FORCE: If fields are missing in the object, update the DB directly
+        const needsInitialization = 
+            user.dailyTasksCompleted === undefined || 
+            user.dailyCommission === undefined ||
+            user.maxDailyTasks === undefined;
 
-        if (needsUpdate) {
-            await user.save();
+        if (needsInitialization) {
+            await User.findByIdAndUpdate(userId, {
+                $set: {
+                    dailyTasksCompleted: user.dailyTasksCompleted ?? 0,
+                    dailyCommission: user.dailyCommission ?? 0,
+                    maxDailyTasks: user.maxDailyTasks ?? 25,
+                    totalCommission: user.totalCommission ?? 0,
+                    lastGrabDate: user.lastGrabDate ?? new Date(),
+                    status: user.status ?? "ACTIVE"
+                }
+            }, { new: true });
+            
+            // Refetch fresh document
+            user = await User.findById(userId).select("-password");
         }
 
-        return NextResponse.json(user);
+        // Return a clean object to ensure all fields are visible to frontend
+        return NextResponse.json({
+            ...user.toObject(),
+            dailyTasksCompleted: user.dailyTasksCompleted || 0,
+            dailyCommission: user.dailyCommission || 0,
+            maxDailyTasks: user.maxDailyTasks || 25,
+            totalCommission: user.totalCommission || 0,
+            status: user.status || "ACTIVE",
+            TEST_FIELD: "IF YOU SEE THIS THE API IS UPDATED"
+        });
     } catch (error) {
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
