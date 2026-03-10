@@ -18,10 +18,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const { role } = useTrading();
     const adminNotifications = useAdminNotifications();
 
-    // Default sidebar to open only on desktop sized screens
+    // Default sidebar to open on Desktop, closed on Mobile
     useEffect(() => {
         if (typeof window !== "undefined" && window.innerWidth >= 1024) {
             setIsSidebarOpen(true);
+        } else {
+            setIsSidebarOpen(false);
         }
     }, []);
 
