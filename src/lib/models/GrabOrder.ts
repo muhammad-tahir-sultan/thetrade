@@ -1,0 +1,21 @@
+import mongoose, { Schema, model, models } from "mongoose";
+
+const GrabOrderSchema = new Schema({
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    productName: { type: String, required: true },
+    productImage: { type: String },
+    price: { type: Number, required: true },
+    commission: { type: Number, required: true },
+    status: { 
+        type: String, 
+        enum: ["PENDING", "COMPLETED", "COMBO", "CANCELLED"], 
+        default: "PENDING" 
+    },
+    isCombo: { type: Boolean, default: false },
+    isAdminAuthorized: { type: Boolean, default: false },
+    authorizedAmount: { type: Number, default: 0 },
+    createdAt: { type: Date, default: Date.now },
+});
+
+const GrabOrder = models.GrabOrder || model("GrabOrder", GrabOrderSchema);
+export default GrabOrder;

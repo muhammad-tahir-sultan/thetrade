@@ -19,11 +19,30 @@ export function useAdmin() {
         },
     });
 
+    const csRequestsQuery = useQuery({
+        queryKey: ["admin-cs-requests"],
+        queryFn: adminService.getCSRequests,
+    });
+
+    const updateCSMutation = useMutation({
+        mutationFn: ({ id, status, adminRemark }: { id: string; status: string; adminRemark?: string }) =>
+            adminService.updateCSStatus(id, { status, adminRemark }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-cs-requests"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-pending-transactions"] });
+        },
+    });
+
     return {
         pendingTransactions: pendingTransactionsQuery.data || [],
-        isLoading: pendingTransactionsQuery.isLoading,
-        isUpdating: updateStatusMutation.isPending,
+        csRequests: csRequestsQuery.data || [],
+        isLoading: pendingTransactionsQuery.isLoading || csRequestsQuery.isLoading,
+        isUpdating: updateStatusMutation.isPending || updateCSMutation.isPending,
         updateStatus: updateStatusMutation.mutateAsync,
-        refresh: pendingTransactionsQuery.refetch,
+        updateCSStatus: updateCSMutation.mutateAsync,
+        refresh: () => {
+            pendingTransactionsQuery.refetch();
+            csRequestsQuery.refetch();
+        },
     };
 }

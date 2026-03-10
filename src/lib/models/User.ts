@@ -6,6 +6,11 @@ const UserSchema = new Schema({
     password: { type: String, required: true },
     balance: { type: Number, default: 0 },
     role: { type: String, enum: ["USER", "ADMIN"], default: "USER" },
+    dailyTasksCompleted: { type: Number, default: 0 },
+    maxDailyTasks: { type: Number, default: 25 },
+    lastGrabDate: { type: Date, default: Date.now },
+    totalCommission: { type: Number, default: 0 },
+    status: { type: String, enum: ["ACTIVE", "FROZEN", "PENDING_COMBO"], default: "ACTIVE" },
     createdAt: { type: Date, default: Date.now },
 });
 

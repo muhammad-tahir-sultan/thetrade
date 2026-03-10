@@ -52,7 +52,7 @@ export const transactionServerService = {
         await dbConnect();
         return await Transaction.find({ status: "PENDING" })
             .populate("userId", "name email balance")
-            .sort({ createdAt: 1 });
+            .sort({ createdAt: -1 });
     },
 
     async updateTransactionStatus(transactionId: string, status: "COMPLETED" | "REJECTED", adminUserId: string) {
