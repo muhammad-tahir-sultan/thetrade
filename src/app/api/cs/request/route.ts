@@ -12,14 +12,32 @@ export async function POST(req: Request) {
         }
 
         const { orderId, message, type } = await req.json();
+        const userId = (session.user as any).id;
         
         await dbConnect();
+
+        // 1. Guard: Check for existing OPEN/IN_PROGRESS requests
+        const existingRequest = await CSRequest.findOne({
+            userId,
+            status: { $in: ["OPEN", "IN_PROGRESS"] },
+            type: type || "COMBO_UNLOCK"
+        });
+
+        if (existingRequest) {
+            return NextResponse.json(
+                { error: "Wait! We have received your previous request and will respond soon. ⏳" }, 
+                { status: 400 }
+            );
+        }
+
+        // 2. Create the request
         const request = await CSRequest.create({
-            userId: (session.user as any).id,
+            userId,
             orderId,
             message,
             type: type || "COMBO_UNLOCK",
-            status: "OPEN"
+            status: "OPEN",
+            userNotified: false
         });
 
         return NextResponse.json({ success: true, request });

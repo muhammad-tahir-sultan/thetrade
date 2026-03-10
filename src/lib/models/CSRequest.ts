@@ -15,8 +15,9 @@ const CSRequestSchema = new Schema({
         default: "OPEN" 
     },
     adminRemark: { type: String },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
+    userNotified: { type: Boolean, default: false },
+}, { 
+    timestamps: true 
 });
 
 const CSRequest = models.CSRequest || model("CSRequest", CSRequestSchema);

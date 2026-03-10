@@ -11,9 +11,17 @@ interface CSRequestListProps {
 export function CSRequestList({ requests, onResolve, isUpdating }: CSRequestListProps) {
     if (requests.length === 0) {
         return (
-            <div className="p-12 text-center flex flex-col items-center gap-4 text-secondary">
-                <Info size={48} className="opacity-20" />
-                <p className="font-medium text-lg">No pending CS requests</p>
+            <div className="w-full min-h-[400px] p-12 text-center flex flex-col items-center justify-center gap-4 text-secondary flex-1">
+                <div className="relative mb-2">
+                    <CheckCircle size={56} className="opacity-10 absolute -top-3 -right-3 text-green-500 scale-150 blur-sm" />
+                    <XCircle size={56} className="opacity-20" />
+                </div>
+                <div className="space-y-1">
+                    <p className="font-black text-xl text-white/90">No pending CS requests</p>
+                    <p className="text-xs opacity-50 max-w-[280px] leading-relaxed mx-auto">
+                        All users are currently active. New unlock requests will appear here as soon as they are submitted by users.
+                    </p>
+                </div>
             </div>
         );
     }

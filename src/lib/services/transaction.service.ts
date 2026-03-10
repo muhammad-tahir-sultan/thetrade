@@ -15,4 +15,14 @@ export const transactionService = {
         const response = await apiClient.get("/user/me");
         return response.data;
     },
+
+    async getUnreadNotifications() {
+        const response = await apiClient.get("/user/notifications");
+        return response.data;
+    },
+
+    async markNotificationAsRead(id: string) {
+        const response = await apiClient.post("/user/notifications", { id });
+        return response.data;
+    },
 };
