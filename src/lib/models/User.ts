@@ -12,6 +12,15 @@ const UserSchema = new Schema({
     totalCommission: { type: Number, default: 0 },
     dailyCommission: { type: Number, default: 0 },
     status: { type: String, enum: ["ACTIVE", "FROZEN", "PENDING_COMBO"], default: "ACTIVE" },
+    taskRequestStatus: { 
+        type: String, 
+        enum: ["NONE", "PENDING", "APPROVED"], 
+        default: "NONE" 
+    },
+    comboConfig: [{
+        grabIndex: { type: Number }, // 1 to 25
+        requiredDeposit: { type: Number, default: 0 }
+    }],
     createdAt: { type: Date, default: Date.now },
 });
 

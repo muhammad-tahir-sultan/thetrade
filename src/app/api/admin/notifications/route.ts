@@ -17,15 +17,17 @@ export async function GET() {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const [pendingTransactions, openCSRequests] = await Promise.all([
+        const [pendingTransactions, openCSRequests, pendingTasks] = await Promise.all([
             Transaction.countDocuments({ status: "PENDING" }),
-            CSRequest.countDocuments({ status: "OPEN" })
+            CSRequest.countDocuments({ status: "OPEN" }),
+            User.countDocuments({ taskRequestStatus: "PENDING" })
         ]);
 
         return NextResponse.json({
-            count: pendingTransactions + openCSRequests,
+            count: pendingTransactions + openCSRequests + pendingTasks,
             transactions: pendingTransactions,
-            csRequests: openCSRequests
+            csRequests: openCSRequests,
+            taskRequests: pendingTasks
         });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });

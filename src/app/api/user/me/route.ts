@@ -31,7 +31,9 @@ export async function GET() {
                     maxDailyTasks: user.maxDailyTasks ?? 25,
                     totalCommission: user.totalCommission ?? 0,
                     lastGrabDate: user.lastGrabDate ?? new Date(),
-                    status: user.status ?? "ACTIVE"
+                    status: user.status ?? "ACTIVE",
+                    taskRequestStatus: user.taskRequestStatus ?? "NONE",
+                    comboConfig: user.comboConfig ?? []
                 }
             }, { new: true });
             
@@ -47,6 +49,8 @@ export async function GET() {
             maxDailyTasks: user.maxDailyTasks || 25,
             totalCommission: user.totalCommission || 0,
             status: user.status || "ACTIVE",
+            taskRequestStatus: user.taskRequestStatus || "NONE",
+            comboConfig: user.comboConfig || [],
             TEST_FIELD: "IF YOU SEE THIS THE API IS UPDATED"
         });
     } catch (error) {

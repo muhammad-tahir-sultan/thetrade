@@ -1,12 +1,16 @@
 "use client";
 
-import { useGrabOrder } from "@/hooks/useGrabOrder";
+import { useState } from "react";
 import { Info, ArrowLeft, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useGrabOrder } from "@/hooks/useGrabOrder";
 import { GrabRecordList } from "@/components/dashboard/GrabRecordList";
+import { OrderModal } from "@/components/dashboard/OrderModal";
 
 export default function GrabRecordsPage() {
-    const { records, isLoadingRecords, refetchRecords } = useGrabOrder();
+    const { records, isLoadingRecords, refetchRecords, completeOrder, isCompleting } = useGrabOrder();
+    const [selectedOrder, setSelectedOrder] = useState<any>(null);
+    const [orderError, setOrderError] = useState<string | null>(null);
     const router = useRouter();
 
     return (
@@ -48,9 +52,32 @@ export default function GrabRecordsPage() {
                         ))}
                     </div>
                 ) : (
-                    <GrabRecordList records={records} />
+                    <GrabRecordList 
+                        records={records} 
+                        onAction={(order) => setSelectedOrder(order)}
+                    />
                 )}
             </div>
+
+            <OrderModal 
+                order={selectedOrder}
+                isOpen={!!selectedOrder}
+                onClose={() => {
+                    setSelectedOrder(null);
+                    setOrderError(null);
+                }}
+                isProcessing={isCompleting}
+                error={orderError}
+                onComplete={async () => {
+                    try {
+                        setOrderError(null);
+                        await completeOrder(selectedOrder._id);
+                        setSelectedOrder(null);
+                    } catch (err: any) {
+                        setOrderError(err.message);
+                    }
+                }}
+            />
         </div>
     );
 }

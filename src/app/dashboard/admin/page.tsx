@@ -7,13 +7,25 @@ import { useEffect, useState } from "react";
 import { CheckCircle, XCircle, Clock, RefreshCw, MessageCircle, ArrowLeftRight } from "lucide-react";
 import { toast } from "sonner";
 import { CSRequestList } from "@/components/admin/CSRequestList";
+import { TaskRequestList } from "@/components/admin/TaskRequestList";
 import { cn } from "@/lib/utils";
 
 export default function AdminDashboard() {
     const { role, loading: userLoading } = useTrading();
     const router = useRouter();
-    const { pendingTransactions, csRequests, isLoading, updateStatus, updateCSStatus, isUpdating, refresh } = useAdmin();
-    const [activeTab, setActiveTab] = useState<"TRANSACTIONS" | "CS_REQUESTS">("TRANSACTIONS");
+    const { 
+        pendingTransactions, 
+        csRequests, 
+        taskRequests,
+        isLoading, 
+        error,
+        updateStatus, 
+        updateCSStatus, 
+        approveTasks,
+        isUpdating, 
+        refresh 
+    } = useAdmin();
+    const [activeTab, setActiveTab] = useState<"TRANSACTIONS" | "CS_REQUESTS" | "TASK_REQUESTS">("TRANSACTIONS");
 
     useEffect(() => {
         if (!userLoading && role !== "ADMIN") {
@@ -42,6 +54,17 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleApproveTasks = async (userId: string, comboConfig: any[]) => {
+        try {
+            await approveTasks({ userId, comboConfig });
+            toast.success("Tasks approved successfully!");
+            return true;
+        } catch (error: any) {
+            toast.error("Failed to approve: " + error.message);
+            return false;
+        }
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -57,19 +80,26 @@ export default function AdminDashboard() {
             </div>
 
             {/* Tab System */}
-            <div className="flex items-center p-1 bg-secondary/10 rounded-2xl w-fit">
-                <button onClick={() => setActiveTab("TRANSACTIONS")} className={cn("px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all cursor-pointer", activeTab === "TRANSACTIONS" ? "bg-white dark:bg-zinc-800 shadow-sm text-primary" : "text-secondary hover:text-primary")}>
+            <div className="flex items-center p-1 bg-secondary/10 rounded-2xl w-fit overflow-x-auto max-w-full">
+                <button onClick={() => setActiveTab("TRANSACTIONS")} className={cn("px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap", activeTab === "TRANSACTIONS" ? "bg-white dark:bg-zinc-800 shadow-sm text-primary" : "text-secondary hover:text-primary")}>
                     <ArrowLeftRight size={18} /> Transactions
                 </button>
-                <button onClick={() => setActiveTab("CS_REQUESTS")} className={cn("px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all relative cursor-pointer", activeTab === "CS_REQUESTS" ? "bg-white dark:bg-zinc-800 shadow-sm text-primary" : "text-secondary hover:text-primary")}>
+                <button onClick={() => setActiveTab("CS_REQUESTS")} className={cn("px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all relative cursor-pointer whitespace-nowrap", activeTab === "CS_REQUESTS" ? "bg-white dark:bg-zinc-800 shadow-sm text-primary" : "text-secondary hover:text-primary")}>
                     <MessageCircle size={18} /> CS Requests
-                    {(isLoading || userLoading) ? (
-                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-secondary/20 rounded-full animate-pulse border-2 border-background" />
-                    ) : csRequests.length > 0 && (
-                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full font-black border-2 border-background animate-pulse">{csRequests.length}</span>
-                    )}
+                    {csRequests.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full font-black border-2 border-background animate-pulse">{csRequests.length}</span>}
+                </button>
+                <button onClick={() => setActiveTab("TASK_REQUESTS")} className={cn("px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all relative cursor-pointer whitespace-nowrap", activeTab === "TASK_REQUESTS" ? "bg-white dark:bg-zinc-800 shadow-sm text-primary" : "text-secondary hover:text-primary")}>
+                    <Clock size={18} /> Task Requests
+                    {taskRequests.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 text-white text-[10px] flex items-center justify-center rounded-full font-black border-2 border-background animate-pulse">{taskRequests.length}</span>}
                 </button>
             </div>
+
+            {error && (
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-sm font-bold flex items-center gap-2">
+                    <XCircle size={18} />
+                    Failed to sync: {error.message}
+                </div>
+            )}
 
             <div className="bg-background border border-secondary/10 rounded-[2rem] overflow-hidden shadow-sm min-h-[400px]">
                 {(isLoading || userLoading) ? (
@@ -96,6 +126,7 @@ export default function AdminDashboard() {
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
+                                {/* ... table content unchanged ... */}
                                 <thead>
                                     <tr className="border-b border-secondary/10 bg-secondary/5">
                                         <th className="p-4 sm:p-6 font-bold text-secondary text-xs uppercase tracking-wider">User</th>
@@ -115,7 +146,7 @@ export default function AdminDashboard() {
                                                 {new Date(tx.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} <br/>
                                                 {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </td>
-                                            <td className="p-4 sm:p-6 flex items-center justify-end gap-2">
+                                            <td className="p-4 sm:p-6 flex items-center justify-end gap-2 text-right">
                                                 <button disabled={isUpdating} onClick={() => handleAccept(tx._id)} className="p-2 bg-green-500/10 text-green-500 rounded-xl cursor-pointer transition-transform active:scale-90"><CheckCircle size={18}/></button>
                                                 <button disabled={isUpdating} onClick={() => updateStatus({id: tx._id, status: "REJECTED"})} className="p-2 bg-red-500/10 text-red-500 rounded-xl cursor-pointer transition-transform active:scale-90"><XCircle size={18}/></button>
                                             </td>
@@ -125,8 +156,10 @@ export default function AdminDashboard() {
                             </table>
                         </div>
                     )
-                ) : (
+                ) : activeTab === "CS_REQUESTS" ? (
                     <CSRequestList requests={csRequests} onResolve={handleResolveCS} isUpdating={isUpdating} />
+                ) : (
+                    <TaskRequestList requests={taskRequests} onApprove={handleApproveTasks} isUpdating={isUpdating} />
                 )}
             </div>
         </div>

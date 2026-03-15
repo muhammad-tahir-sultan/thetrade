@@ -20,6 +20,8 @@ export const grabServerService = {
             user.dailyTasksCompleted = 0;
             user.dailyCommission = 0;
             user.lastGrabDate = now;
+            user.taskRequestStatus = "NONE";
+            user.comboConfig = [];
             needsSave = true;
         }
         
@@ -29,12 +31,21 @@ export const grabServerService = {
         if (typeof user.totalCommission !== 'number' || isNaN(user.totalCommission)) { user.totalCommission = 0; needsSave = true; }
         if (!user.lastGrabDate) { user.lastGrabDate = now; needsSave = true; }
         if (!user.maxDailyTasks) { user.maxDailyTasks = 25; needsSave = true; }
+        if (!user.taskRequestStatus) { user.taskRequestStatus = "NONE"; needsSave = true; }
 
         if (needsSave) {
             await user.save();
         }
 
-        // 2. Check Limits
+        // 2. Check Task Request Status
+        if (user.taskRequestStatus !== "APPROVED") {
+            const errorMsg = user.taskRequestStatus === "PENDING" 
+                ? "Your task request is pending approval." 
+                : "You need to request daily tasks first.";
+            throw new Error(errorMsg);
+        }
+
+        // 3. Check Limits
         if (user.dailyTasksCompleted >= user.maxDailyTasks) {
             throw new Error("Daily task limit reached (25/25)");
         }
@@ -49,26 +60,56 @@ export const grabServerService = {
             return { order: pendingOrder, message: "Continue with your pending order" };
         }
 
-        // 3. Determine if it's a COMBO order (roughly 15% chance, or based on specific task indices)
-        // Let's say indices 7, 14, 21 are combos for simplicity, or just random
-        const isCombo = Math.random() < 0.15; // 15% chance
+        // 3. Determine if it's a COMBO order (Based on Admin Configuration)
+        const nextGrabIndex = user.dailyTasksCompleted + 1;
+        const comboSetting = user.comboConfig?.find((c: any) => c.grabIndex === nextGrabIndex);
+        const isCombo = !!comboSetting;
         
         // 4. Generate Order Details
-        // Profit usually 0.5% to 1% of balance
         const baseProfitRate = 0.008; // 0.8%
         const commission = user.balance * baseProfitRate;
-        const price = user.balance * (isCombo ? 2.5 : 0.8);
+        
+        // For combos, price is usually 2.5x balance, or enough to require a deposit
+        const price = user.balance * (isCombo ? (comboSetting.multiple || 2.5) : 0.8);
+        const productName = this.getRandomProduct();
 
-        // Ensure we don't have orders with 0 price for very low balances
         const finalPrice = Math.max(parseFloat(price.toFixed(2)), 0.01);
         const finalCommission = Math.max(parseFloat(commission.toFixed(2)), 0.01);
 
+        // Generate items for the order (especially for combos)
+        const items = [];
+        if (isCombo) {
+            const numItems = Math.floor(Math.random() * 3) + 3; // 3-5 items
+            let remainingPrice = finalPrice;
+            for (let i = 0; i < numItems; i++) {
+                const itemPrice = i === numItems - 1 ? remainingPrice : parseFloat((Math.random() * (remainingPrice / 2)).toFixed(2));
+                const qty = Math.floor(Math.random() * 500) + 1;
+                items.push({
+                    name: this.getRandomProduct(),
+                    image: `https://picsum.photos/seed/${Math.random()}/200`,
+                    price: itemPrice,
+                    quantity: qty
+                });
+                remainingPrice -= itemPrice;
+                if (remainingPrice <= 0) break;
+            }
+        } else {
+            items.push({
+                name: productName,
+                image: `https://picsum.photos/seed/${Math.random()}/200`,
+                price: finalPrice,
+                quantity: 1
+            });
+        }
+
         const newOrder = await GrabOrder.create({
             userId,
-            productName: this.getRandomProduct(),
+            productName: isCombo ? "Combine Order" : productName,
+            items,
             price: finalPrice,
             commission: finalCommission,
             isCombo,
+            requiredDeposit: comboSetting?.requiredDeposit || 0,
             status: "PENDING"
         });
 
@@ -98,7 +139,8 @@ export const grabServerService = {
         const balanceNeeded = order.isCombo ? order.price : 0; 
 
         if (!order.isAdminAuthorized && user.balance < balanceNeeded) {
-            const errorMsg = "Balance insufficient for 💎 Combo. Request Instant Unlock now!";
+            const shortAmount = (balanceNeeded - user.balance).toFixed(4);
+            const errorMsg = `Your account balance is not enough, you need to recharge ${shortAmount} to submit this order`;
             throw new Error(errorMsg);
         }
 

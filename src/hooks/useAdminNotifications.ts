@@ -18,6 +18,7 @@ export function useAdminNotifications() {
         count: notificationsQuery.data?.count || 0,
         transactions: notificationsQuery.data?.transactions || 0,
         csRequests: notificationsQuery.data?.csRequests || 0,
+        taskRequests: notificationsQuery.data?.taskRequests || 0,
         isLoading: notificationsQuery.isLoading
     };
 }

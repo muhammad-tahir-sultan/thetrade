@@ -17,7 +17,12 @@ export const authOptions: NextAuthOptions = {
                 const user = await User.findOne({ email: credentials?.email });
 
                 if (user && bcrypt.compareSync(credentials!.password, user.password)) {
-                    return { id: user._id.toString(), email: user.email, name: user.name };
+                    return { 
+                        id: user._id.toString(), 
+                        email: user.email, 
+                        name: user.name,
+                        role: user.role 
+                    };
                 }
                 return null;
             },
@@ -26,11 +31,17 @@ export const authOptions: NextAuthOptions = {
     session: { strategy: "jwt" },
     callbacks: {
         async jwt({ token, user }) {
-            if (user) token.id = user.id;
+            if (user) {
+                token.id = user.id;
+                token.role = (user as any).role;
+            }
             return token;
         },
         async session({ session, token }) {
-            if (session.user) (session.user as any).id = token.id;
+            if (session.user) {
+                (session.user as any).id = token.id;
+                (session.user as any).role = token.role;
+            }
             return session;
         },
     },

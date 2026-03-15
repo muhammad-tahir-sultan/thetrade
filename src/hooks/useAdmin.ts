@@ -35,16 +35,33 @@ export function useAdmin() {
         },
     });
 
+    const taskRequestsQuery = useQuery({
+        queryKey: ["admin-task-requests"],
+        queryFn: adminService.getTaskRequests,
+    });
+
+    const approveTasksMutation = useMutation({
+        mutationFn: ({ userId, comboConfig }: { userId: string, comboConfig: any[] }) =>
+            adminService.approveTasks(userId, comboConfig),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-task-requests"] });
+        },
+    });
+
     return {
         pendingTransactions: pendingTransactionsQuery.data || [],
         csRequests: csRequestsQuery.data || [],
-        isLoading: pendingTransactionsQuery.isLoading || csRequestsQuery.isLoading,
-        isUpdating: updateStatusMutation.isPending || updateCSMutation.isPending,
+        taskRequests: taskRequestsQuery.data || [],
+        isLoading: pendingTransactionsQuery.isLoading || csRequestsQuery.isLoading || taskRequestsQuery.isLoading,
+        error: taskRequestsQuery.error || csRequestsQuery.error || pendingTransactionsQuery.error,
+        isUpdating: updateStatusMutation.isPending || updateCSMutation.isPending || approveTasksMutation.isPending,
         updateStatus: updateStatusMutation.mutateAsync,
         updateCSStatus: updateCSMutation.mutateAsync,
+        approveTasks: approveTasksMutation.mutateAsync,
         refresh: () => {
             pendingTransactionsQuery.refetch();
             csRequestsQuery.refetch();
+            taskRequestsQuery.refetch();
         },
     };
 }

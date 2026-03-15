@@ -35,6 +35,7 @@ export function useTrading() {
         maxDailyTasks: userQuery.data?.maxDailyTasks || 25,
         dailyCommission: userQuery.data?.dailyCommission || 0,
         status: userQuery.data?.status || "ACTIVE",
+        taskRequestStatus: userQuery.data?.taskRequestStatus || "NONE",
         role: userQuery.data?.role || "USER",
         transactions: transactionsQuery.data || [],
         loading: userQuery.isLoading || transactionsQuery.isLoading,

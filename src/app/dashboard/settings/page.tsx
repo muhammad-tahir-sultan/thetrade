@@ -1,6 +1,7 @@
 "use client";
 
 import { Settings, Shield, User, Wallet, Bell, Moon, Lock } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
@@ -55,6 +56,16 @@ export default function SettingsPage() {
                         <Moon size={16} className="text-primary" />
                         <span className="text-sm font-black text-primary">Coming VERY Soon</span>
                     </div>
+                </div>
+
+                <div className="relative z-10 pt-4">
+                    <button 
+                        onClick={() => signOut()}
+                        className="px-8 py-3 bg-red-500 text-white rounded-2xl font-bold flex items-center gap-2 hover:bg-red-600 transition-all active:scale-95 shadow-lg shadow-red-500/20"
+                    >
+                        <Lock size={18} />
+                        Logout Now
+                    </button>
                 </div>
             </div>
 

@@ -24,5 +24,15 @@ export const adminService = {
     async getNotificationCount() {
         const response = await apiClient.get("/admin/notifications");
         return response.data;
+    },
+
+    async getTaskRequests() {
+        const response = await apiClient.get("/admin/tasks/requests");
+        return response.data;
+    },
+
+    async approveTasks(userId: string, comboConfig: any[]) {
+        const response = await apiClient.post("/admin/tasks/approve", { userId, comboConfig });
+        return response.data;
     }
 };

@@ -48,7 +48,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const navItems = [
         { label: "Home", icon: LayoutDashboard, href: "/dashboard" },
-        { label: "History", icon: History, href: "/dashboard/history" },
+        { label: "Record", icon: History, href: "/dashboard/history" },
         { label: "Grab", icon: Zap, href: "/dashboard/grab" },
         { label: "Settings", icon: Settings, href: "/dashboard/settings" },
     ];
@@ -92,42 +92,54 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </button>
                 </div>
 
-                <nav className="flex-1 flex flex-col gap-2">
-                    {isLoading ? (
-                        /* Sidebar skeletons while loading */
-                        [1, 2, 3, 4].map((i) => (
-                            <div key={i} className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-secondary/5 animate-pulse">
-                                <div className="w-5 h-5 rounded-lg bg-secondary/10" />
-                                <div className="h-4 w-24 rounded bg-secondary/10" />
-                            </div>
-                        ))
-                    ) : (
-                        navItems.map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={cn(
-                                    "flex items-center justify-between px-4 py-3 rounded-2xl font-bold transition-all cursor-pointer",
-                                    pathname === item.href
-                                        ? "bg-primary/10 text-primary shadow-sm"
-                                        : "text-secondary hover:bg-secondary/5"
-                                )}
-                            >
-                                <div className="flex items-center gap-4">
-                                    <item.icon size={20} />
-                                    <span>{item.label}</span>
+                <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-hide">
+                    <nav className="flex flex-col gap-2">
+                        {isLoading ? (
+                            /* Sidebar skeletons while loading */
+                            [1, 2, 3, 4].map((i) => (
+                                <div key={i} className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-secondary/5 animate-pulse">
+                                    <div className="w-5 h-5 rounded-lg bg-secondary/10" />
+                                    <div className="h-4 w-24 rounded bg-secondary/10" />
                                 </div>
-                                {item.label === "Admin" && adminNotifications.count > 0 && (
-                                    <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-black bg-red-500 text-white rounded-full animate-pulse shadow-lg shadow-red-500/40">
-                                        {adminNotifications.count}
-                                    </span>
-                                )}
-                            </Link>
-                        ))
-                    )}
-                </nav>
+                            ))
+                        ) : (
+                            navItems.map((item) => (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className={cn(
+                                        "flex items-center justify-between px-4 py-3 rounded-2xl font-bold transition-all cursor-pointer",
+                                        pathname === item.href
+                                            ? "bg-primary/10 text-primary shadow-sm"
+                                            : "text-secondary hover:bg-secondary/5"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <item.icon size={20} />
+                                        <span>{item.label}</span>
+                                    </div>
+                                    {item.label === "Admin" && adminNotifications.count > 0 && (
+                                        <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-black bg-red-500 text-white rounded-full animate-pulse shadow-lg shadow-red-500/40">
+                                            {adminNotifications.count}
+                                        </span>
+                                    )}
+                                </Link>
+                            ))
+                        )}
+                    </nav>
+                </div>
 
-                <div className="mt-auto h-12 w-full bg-secondary/5 rounded-2xl animate-pulse" />
+                <div className="pt-4 border-t border-secondary/5">
+                    <button
+                        onClick={() => signOut()}
+                        className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl font-bold text-red-500 hover:bg-red-500/10 transition-all cursor-pointer group"
+                    >
+                        <div className="p-2 bg-red-500/10 rounded-xl group-hover:rotate-12 transition-transform">
+                            <LogOut size={18} />
+                        </div>
+                        <span className="text-sm">Sign Out</span>
+                    </button>
+                </div>
             </aside>
 
             {/* Main Content */}
