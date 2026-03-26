@@ -48,20 +48,33 @@ export function useAdmin() {
         },
     });
 
+    const depositAddressesQuery = useQuery({
+        queryKey: ["admin-deposit-addresses"],
+        queryFn: async () => {
+            const res = await fetch("/api/admin/deposit-address");
+            if (!res.ok) throw new Error("Failed to load addresses");
+            return res.json();
+        },
+    });
+
     return {
         pendingTransactions: pendingTransactionsQuery.data || [],
         csRequests: csRequestsQuery.data || [],
         taskRequests: taskRequestsQuery.data || [],
+        depositAddresses: depositAddressesQuery.data || [],
+        isLoadingAddresses: depositAddressesQuery.isLoading,
         isLoading: pendingTransactionsQuery.isLoading || csRequestsQuery.isLoading || taskRequestsQuery.isLoading,
         error: taskRequestsQuery.error || csRequestsQuery.error || pendingTransactionsQuery.error,
         isUpdating: updateStatusMutation.isPending || updateCSMutation.isPending || approveTasksMutation.isPending,
         updateStatus: updateStatusMutation.mutateAsync,
         updateCSStatus: updateCSMutation.mutateAsync,
         approveTasks: approveTasksMutation.mutateAsync,
+        refreshAddresses: () => depositAddressesQuery.refetch(),
         refresh: () => {
             pendingTransactionsQuery.refetch();
             csRequestsQuery.refetch();
             taskRequestsQuery.refetch();
+            depositAddressesQuery.refetch();
         },
     };
 }

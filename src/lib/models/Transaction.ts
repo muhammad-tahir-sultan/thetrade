@@ -5,6 +5,10 @@ const TransactionSchema = new Schema({
     type: { type: String, enum: ["DEPOSIT", "WITHDRAW"], required: true },
     amount: { type: Number, required: true },
     status: { type: String, enum: ["PENDING", "COMPLETED", "FAILED", "REJECTED"], default: "PENDING" },
+    // For deposits: reference note or screenshot description the user sends to CS
+    screenshotNote: { type: String, default: "" },
+    // Deposit address used for this transaction (snapshot at time of request)
+    depositAddress: { type: String, default: "" },
     createdAt: { type: Date, default: Date.now },
 });
 

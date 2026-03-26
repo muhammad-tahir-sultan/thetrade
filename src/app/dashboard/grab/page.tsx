@@ -10,6 +10,7 @@ import { GrabStats } from "@/components/dashboard/GrabStats";
 import { OrderModal } from "@/components/dashboard/OrderModal";
 import Link from "next/link";
 import { LiveOrderFeed } from "@/components/dashboard/LiveOrderFeed";
+import { useTrading } from "@/hooks/useTrading";
 
 const ITEMS = [
     { id: 1, name: "Luxury Watch", icon: Watch, color: "text-amber-500" },
@@ -23,7 +24,7 @@ const ITEMS = [
 ];
 
 export default function GrabPage() {
-    const { user, balance, dailyTasksCompleted, maxDailyTasks, taskRequestStatus } = useTrading();
+    const { user, balance, dailyTasksCompleted, maxDailyTasks, taskRequestStatus, createTransaction, isProcessing } = useTrading();
     const { grabOrder, completeOrder, requestCS, isGrabbing, isCompleting, currentOrder } = useGrabOrder();
 
     const [isSpinning, setIsSpinning] = useState(false);
@@ -110,7 +111,7 @@ export default function GrabPage() {
                         </div>
 
                         <div className="w-[300px] h-[300px] sm:w-[320px] sm:h-[320px] relative rounded-full border-4 border-amber-500/40 p-5 shadow-[0_0_40px_rgba(245,158,11,0.15)]">
-                            <div className="absolute inset-0 rounded-full bg-background border-[10px] border-background -z-10" />
+                            <div className="absolute inset-0 rounded-full bg-background border-10 border-background -z-10" />
                             <div
                                 className={cn(
                                     "w-full h-full rounded-full relative transition-[filter,transform]",
@@ -135,7 +136,7 @@ export default function GrabPage() {
 
                             <button onClick={handleSpin} disabled={isSpinning || isGrabbing}
                                 className={cn("absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex flex-col items-center justify-center font-black tracking-widest text-black border-4 border-background transition-all shadow-xl cursor-pointer",
-                                    (isSpinning || isGrabbing) ? "bg-amber-600/40 scale-95 opacity-50 cursor-not-allowed" : "bg-gradient-to-br from-amber-300 to-amber-500 hover:scale-105 active:scale-95")}>
+                                    (isSpinning || isGrabbing) ? "bg-amber-600/40 scale-95 opacity-50 cursor-not-allowed" : "bg-linear-to-br from-amber-300 to-amber-500 hover:scale-105 active:scale-95")}>
                                 {isSpinning ? "..." : "START"}
                             </button>
 
@@ -207,7 +208,7 @@ export default function GrabPage() {
                                     window.scrollTo({ top: 0, behavior: "smooth" });
                                 }
                             }}
-                            className="bg-white dark:bg-zinc-900 shadow-sm border border-black/5 rounded-[2rem] p-4 space-y-3 group hover:border-amber-500/30 hover:bg-amber-500/[0.02] transition-all cursor-pointer text-left w-full active:scale-[0.97] disabled:opacity-50"
+                            className="bg-white dark:bg-zinc-900 shadow-sm border border-black/5 rounded-4xl p-4 space-y-3 group hover:border-amber-500/30 hover:bg-amber-500/2 transition-all cursor-pointer text-left w-full active:scale-[0.97] disabled:opacity-50"
                         >
                             <div className="aspect-square bg-secondary/5 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                                 <item.icon className={cn("w-8 h-8", item.color)} strokeWidth={1} />
@@ -257,6 +258,10 @@ export default function GrabPage() {
                     });
                     setShowModal(false);
                 }}
+                onDepositSubmit={async (amount) => {
+                    await createTransaction({ type: "DEPOSIT", amount });
+                }}
+                isDepositPending={isProcessing}
             />
         </div>
     );
