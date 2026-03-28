@@ -10,7 +10,6 @@ import { GrabStats } from "@/components/dashboard/GrabStats";
 import { OrderModal } from "@/components/dashboard/OrderModal";
 import Link from "next/link";
 import { LiveOrderFeed } from "@/components/dashboard/LiveOrderFeed";
-import { useTrading } from "@/hooks/useTrading";
 
 const ITEMS = [
     { id: 1, name: "Luxury Watch", icon: Watch, color: "text-amber-500" },

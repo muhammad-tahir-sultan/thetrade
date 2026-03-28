@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
+import bcrypt from "bcryptjs";
 
 export async function GET() {
     try {
@@ -53,6 +54,43 @@ export async function GET() {
             comboConfig: user.comboConfig || [],
             TEST_FIELD: "IF YOU SEE THIS THE API IS UPDATED"
         });
+    } catch (error) {
+        return NextResponse.json({ error: "Server error" }, { status: 500 });
+    }
+}
+
+// PATCH /api/user/me — update name and/or password
+export async function PATCH(req: Request) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !(session.user as any).id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { name, currentPassword, newPassword } = await req.json();
+        await dbConnect();
+
+        const user = await User.findById((session.user as any).id);
+        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+        if (name?.trim()) user.name = name.trim();
+
+        if (newPassword) {
+            if (!currentPassword) {
+                return NextResponse.json({ error: "Current password is required" }, { status: 400 });
+            }
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+            if (!isMatch) {
+                return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
+            }
+            if (newPassword.length < 6) {
+                return NextResponse.json({ error: "New password must be at least 6 characters" }, { status: 400 });
+            }
+            user.password = await bcrypt.hash(newPassword, 10);
+        }
+
+        await user.save();
+        return NextResponse.json({ success: true, name: user.name });
     } catch (error) {
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
