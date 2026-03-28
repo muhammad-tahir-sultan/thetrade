@@ -64,8 +64,8 @@ export default function MinePage() {
 
     const menuItems = [
         { label: "Profile", icon: UserCircle, href: "/dashboard/profile" },
-        { label: "Deposit records", icon: ArrowDownCircle, href: "/dashboard/history" },
-        { label: "Withdrawal records", icon: ArrowUpCircle, href: "/dashboard/history" },
+        { label: "Deposit records", icon: ArrowDownCircle, href: "/dashboard/history?type=DEPOSIT" },
+        { label: "Withdrawal records", icon: ArrowUpCircle, href: "/dashboard/history?type=WITHDRAW" },
         { label: "Setting", icon: Settings, href: "/dashboard/settings" },
         ...((user as any)?.role === "ADMIN"
             ? [{ label: "Admin Panel", icon: Shield, href: "/dashboard/admin" }]
@@ -123,8 +123,8 @@ export default function MinePage() {
             <DepositModal
                 isOpen={showDeposit}
                 onClose={() => setShowDeposit(false)}
-                onSubmitPending={async (amount) => {
-                    await createTransaction({ type: "DEPOSIT", amount });
+                onSubmitPending={async (amount, depositAddress) => {
+                    await createTransaction({ type: "DEPOSIT", amount, depositAddress });
                 }}
                 isPending={isProcessing}
             />

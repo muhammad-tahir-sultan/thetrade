@@ -10,14 +10,14 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { type, amount } = await req.json();
+        const { type, amount, depositAddress } = await req.json();
         const userId = (session.user as any).id;
 
         if (!type || !amount || amount <= 0) {
             return NextResponse.json({ error: "Invalid data" }, { status: 400 });
         }
 
-        const result = await transactionServerService.processTransaction(userId, type, amount);
+        const result = await transactionServerService.processTransaction(userId, type, amount, depositAddress);
         return NextResponse.json({ message: "Success", ...result });
     } catch (error: any) {
         return NextResponse.json({ error: error.message || "Server error" }, { status: error.message === "User not found" ? 404 : 400 });

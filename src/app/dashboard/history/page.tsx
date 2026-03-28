@@ -4,12 +4,15 @@ import { useTrading } from "@/hooks/useTrading";
 import { TransactionList, Transaction } from "@/components/dashboard/TransactionList";
 import { History as HistoryIcon, Download } from "lucide-react";
 import { useState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function HistoryPage() {
     const { transactions, loading } = useTrading();
-    const [filter, setFilter] = useState<"ALL" | "DEPOSIT" | "WITHDRAW">("ALL");
+    const searchParams = useSearchParams();
+    const initialType = (searchParams.get("type") as "ALL" | "DEPOSIT" | "WITHDRAW") ?? "ALL";
+    const [filter, setFilter] = useState<"ALL" | "DEPOSIT" | "WITHDRAW">(initialType);
 
     const filteredTransactions = useMemo(() => {
         if (filter === "ALL") return transactions;
@@ -74,7 +77,7 @@ export default function HistoryPage() {
                 </button>
             </header>
 
-            <div className="bg-secondary/5 border border-secondary/10 rounded-[1.5rem] md:rounded-[2.5rem] p-5 md:p-12">
+                <div className="bg-secondary/5 border border-secondary/10 rounded-3xl md:rounded-[2.5rem] p-5 md:p-12">
                 <div className="mb-8 md:mb-10 flex overflow-x-auto pb-2 gap-3 scrollbar-hide">
                     {[
                         { id: "ALL", label: "All Transactions" },

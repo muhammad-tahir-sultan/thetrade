@@ -5,7 +5,7 @@ import { PlusCircle, MinusCircle } from "lucide-react";
 import { DepositModal } from "./DepositModal";
 
 interface TransactionFormProps {
-    onAction: (type: "DEPOSIT" | "WITHDRAW", amount: number) => Promise<unknown>;
+    onAction: (type: "DEPOSIT" | "WITHDRAW", amount: number, depositAddress?: string) => Promise<unknown>;
     isPending: boolean;
     balance: number;
 }
@@ -34,8 +34,8 @@ export function TransactionForm({ onAction, isPending, balance }: TransactionFor
         }
     };
 
-    const handleDepositSubmit = async (depositAmount: number) => {
-        await onAction("DEPOSIT", depositAmount);
+    const handleDepositSubmit = async (depositAmount: number, depositAddress: string) => {
+        await onAction("DEPOSIT", depositAmount, depositAddress);
     };
 
     return (

@@ -3,7 +3,7 @@ import Transaction from "@/lib/models/Transaction";
 import dbConnect from "@/lib/mongodb";
 
 export const transactionServerService = {
-    async processTransaction(userId: string, type: "DEPOSIT" | "WITHDRAW", amount: number) {
+    async processTransaction(userId: string, type: "DEPOSIT" | "WITHDRAW", amount: number, depositAddress?: string) {
         await dbConnect();
 
         const user = await User.findById(userId);
@@ -28,14 +28,14 @@ export const transactionServerService = {
             });
             return { balance: user.balance, transaction };
         } else {
-            // Regular users create a PENDING request. We don't check balance here 
-            // because they might be waiting for a deposit to be approved first.
-            // Balance is strictly checked when the Admin actually approves the withdrawal.
+            // Regular users create a PENDING request. Balance is strictly checked
+            // when the Admin approves; for withdrawals the check runs at approval time.
             const transaction = await Transaction.create({
                 userId,
                 type,
                 amount,
                 status: "PENDING",
+                depositAddress: depositAddress || "",
             });
             return { balance: user.balance, transaction };
         }

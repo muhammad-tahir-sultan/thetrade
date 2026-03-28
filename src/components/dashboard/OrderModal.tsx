@@ -13,7 +13,7 @@ interface OrderModalProps {
     isProcessing: boolean;
     onContactCS?: () => void;
     error?: string | null;
-    onDepositSubmit?: (amount: number) => Promise<void>;
+    onDepositSubmit?: (amount: number, depositAddress: string) => Promise<void>;
     isDepositPending?: boolean;
 }
 

@@ -257,8 +257,8 @@ export default function GrabPage() {
                     });
                     setShowModal(false);
                 }}
-                onDepositSubmit={async (amount) => {
-                    await createTransaction({ type: "DEPOSIT", amount });
+                onDepositSubmit={async (amount, depositAddress) => {
+                    await createTransaction({ type: "DEPOSIT", amount, depositAddress });
                 }}
                 isDepositPending={isProcessing}
             />

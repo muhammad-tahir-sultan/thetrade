@@ -17,8 +17,8 @@ export default function GrabRecordsPage() {
     const [depositOrder, setDepositOrder] = useState<any>(null);
     const router = useRouter();
 
-    const handleDepositForOrder = async (amount: number) => {
-        await createTransaction({ type: "DEPOSIT", amount });
+    const handleDepositForOrder = async (amount: number, depositAddress: string) => {
+        await createTransaction({ type: "DEPOSIT", amount, depositAddress });
         setDepositOrder(null);
     };
 
@@ -88,8 +88,8 @@ export default function GrabRecordsPage() {
                         setOrderError(err.message);
                     }
                 }}
-                onDepositSubmit={async (amount) => {
-                    await createTransaction({ type: "DEPOSIT", amount });
+                onDepositSubmit={async (amount, depositAddress) => {
+                    await createTransaction({ type: "DEPOSIT", amount, depositAddress });
                 }}
                 isDepositPending={isProcessing}
             />

@@ -169,7 +169,14 @@ export default function AdminDashboard() {
                                                     {tx.type}
                                                 </span>
                                             </td>
-                                            <td className="p-4 sm:p-6 font-black">${tx.amount.toFixed(2)}</td>
+                                            <td className="p-4 sm:p-6">
+                                                <div className="font-black">${tx.amount.toFixed(2)}</div>
+                                                {tx.type === "DEPOSIT" && tx.depositAddress && (
+                                                    <div className="text-[10px] font-mono text-secondary mt-1 max-w-[120px] truncate" title={tx.depositAddress}>
+                                                        {tx.depositAddress}
+                                                    </div>
+                                                )}
+                                            </td>
                                             <td className="p-4 sm:p-6 text-xs font-medium text-secondary">
                                                 {new Date(tx.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}<br />
                                                 {new Date(tx.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}

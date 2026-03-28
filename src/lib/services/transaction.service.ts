@@ -1,8 +1,8 @@
 import apiClient from "@/lib/api-client";
 
 export const transactionService = {
-    async createTransaction(type: "DEPOSIT" | "WITHDRAW", amount: number) {
-        const response = await apiClient.post("/transactions", { type, amount });
+    async createTransaction(type: "DEPOSIT" | "WITHDRAW", amount: number, depositAddress?: string) {
+        const response = await apiClient.post("/transactions", { type, amount, depositAddress });
         return response.data;
     },
 
