@@ -5,40 +5,40 @@ import { cn } from "@/lib/utils";
 
 export function GrabStats() {
     const { balance, dailyCommission, dailyTasksCompleted, status } = useTrading();
-    
-    // Improved precision for small balances
-    const potentialProfit = balance > 0 
-        ? (balance * 0.01 < 0.01 ? (balance * 0.01).toFixed(4) : (balance * 0.01).toFixed(2)) 
+
+    const potentialProfit = balance > 0
+        ? (balance * 0.01 < 0.01 ? (balance * 0.01).toFixed(4) : (balance * 0.01).toFixed(2))
         : "0.00";
 
     return (
-        <div className="grid grid-cols-2 gap-y-6 gap-x-4 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 dark:from-zinc-900 dark:via-black dark:to-zinc-900 rounded-[2.5rem] p-7 border border-white/10 shadow-2xl relative overflow-hidden group cursor-pointer">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/10 blur-[60px] rounded-full pointer-events-none group-hover:bg-amber-500/20 transition-all duration-700" />
+        <div className="grid grid-cols-2 gap-y-6 gap-x-4 bg-white dark:bg-zinc-900 rounded-4xl p-7 border border-zinc-200 dark:border-white/5 shadow-sm dark:shadow-2xl relative overflow-hidden group cursor-pointer">
+            {/* Subtle amber glow — visible in both modes */}
+            <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/8 blur-[60px] rounded-full pointer-events-none group-hover:bg-amber-500/15 transition-all duration-700" />
             <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-primary/5 blur-[60px] rounded-full pointer-events-none" />
-            
-            <div className="space-y-1 relative z-10 text-center border-r border-white/5">
-                <p className="text-secondary text-[10px] uppercase tracking-widest font-black opacity-60">Today's Earnings</p>
-                <p className="text-2xl font-black text-amber-500 drop-shadow-sm">
+
+            <div className="space-y-1 relative z-10 text-center border-r border-zinc-100 dark:border-white/5">
+                <p className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase tracking-widest font-black">Today's Earnings</p>
+                <p className="text-2xl font-black text-amber-500">
                     ${dailyCommission.toFixed(2)}
                 </p>
             </div>
-            
+
             <div className="space-y-1 relative z-10 text-center">
-                <p className="text-secondary text-[10px] uppercase tracking-widest font-black opacity-60">Wallet Balance</p>
-                <p className="text-2xl font-black text-white hover:scale-105 transition-transform">
+                <p className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase tracking-widest font-black">Wallet Balance</p>
+                <p className="text-2xl font-black text-zinc-900 dark:text-white hover:scale-105 transition-transform">
                     ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
             </div>
 
-            <div className="space-y-1 mt-4 relative z-10 text-center border-r border-white/5">
-                <p className="text-amber-500/60 text-[10px] uppercase tracking-widest font-black">Estimated Next</p>
-                <p className="text-lg font-black text-amber-200/80 animate-pulse">
+            <div className="space-y-1 mt-4 relative z-10 text-center border-r border-zinc-100 dark:border-white/5">
+                <p className="text-amber-500/70 text-[10px] uppercase tracking-widest font-black">Estimated Next</p>
+                <p className="text-lg font-black text-amber-500 animate-pulse">
                     +${potentialProfit}
                 </p>
             </div>
 
             <div className="space-y-1 mt-4 relative z-10 text-center">
-                <p className="text-secondary text-[10px] uppercase tracking-widest font-black opacity-60">Status</p>
+                <p className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase tracking-widest font-black">Status</p>
                 <div className="flex items-center justify-center gap-1.5">
                     <div className={cn(
                         "w-2 h-2 rounded-full animate-ping",
