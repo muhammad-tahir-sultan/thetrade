@@ -7,6 +7,7 @@ import { useTrading } from "@/hooks/useTrading";
 import { LogOut, Menu as MenuIcon, X, Shield, Home, Headphones, ShoppingBag, Receipt, User } from "lucide-react";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { NotificationManager } from "@/components/dashboard/NotificationManager";
+import { ThemeToggleIcon } from "@/components/ThemeToggle";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -97,7 +98,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </nav>
                 </div>
 
-                <div className="pt-4 border-t border-secondary/5">
+                <div className="pt-4 border-t border-secondary/5 space-y-2">
+                    <div className="flex items-center justify-between px-4 py-2">
+                        <span className="text-xs font-bold text-secondary uppercase tracking-widest">Appearance</span>
+                        <ThemeToggleIcon />
+                    </div>
                     <button onClick={() => signOut()}
                         className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl font-bold text-red-500 hover:bg-red-500/10 transition-all cursor-pointer group">
                         <div className="p-2 bg-red-500/10 rounded-xl group-hover:rotate-12 transition-transform">

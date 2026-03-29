@@ -1,88 +1,93 @@
 "use client";
 
-import { Settings, Shield, User, Wallet, Bell, Moon, Lock } from "lucide-react";
+import { Shield, User, Wallet, Bell, Lock, Palette } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { ThemeTogglePill } from "@/components/ThemeToggle";
+import { useTheme } from "@/components/ThemeProvider";
 import { cn } from "@/lib/utils";
 
+const COMING_SOON = [
+    { name: "Account Profile", icon: User, description: "Manage your personal information and identity." },
+    { name: "Security & Passwords", icon: Shield, description: "Update your login credentials and 2FA." },
+    { name: "Wallet Preferences", icon: Wallet, description: "Configure your deposit and withdrawal methods." },
+    { name: "Notifications", icon: Bell, description: "Choose what alerts you want to receive." },
+];
+
+const THEME_LABELS: Record<string, string> = {
+    light: "Light mode — bright and clean.",
+    dark: "Dark mode — easier on the eyes.",
+    system: "Follows your device setting automatically.",
+};
+
 export default function SettingsPage() {
-    const categories = [
-        { name: "Account Profile", icon: User, description: "Manage your personal information and identity." },
-        { name: "Security & Passwords", icon: Shield, description: "Update your login credentials and 2FA." },
-        { name: "Wallet Preferences", icon: Wallet, description: "Configure your deposit and withdrawal methods." },
-        { name: "Notifications", icon: Bell, description: "Choose what alerts you want to receive." },
-    ];
+    const { theme } = useTheme();
 
     return (
-        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-700">
-            {/* Header Section */}
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
+            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h1 className="text-5xl font-black tracking-tighter mb-4 text-white">System Settings</h1>
-                    <p className="text-secondary font-medium text-lg max-w-lg">Customize your experience and manage your global security parameters from one place.</p>
-                </div>
-                <div className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                    <span className="text-[10px] uppercase font-black tracking-widest text-amber-500">Feature Under Construction</span>
+                    <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-3">Settings</h1>
+                    <p className="text-secondary font-medium text-base max-w-lg">
+                        Manage your preferences and account controls.
+                    </p>
                 </div>
             </div>
 
-            {/* Coming Soon Teaser */}
-            <div className="relative group overflow-hidden bg-gradient-to-br from-zinc-900 to-black border border-white/5 rounded-[3rem] p-12 text-center flex flex-col items-center justify-center gap-8 min-h-[450px]">
-                {/* Background Blobs */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] rounded-full group-hover:bg-primary/10 transition-all duration-1000" />
-                <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-amber-500/5 blur-[100px] rounded-full group-hover:bg-amber-500/10 transition-all duration-1000" />
-
-                <div className="relative z-10 space-y-4">
-                    <div className="w-20 h-20 bg-secondary/10 rounded-3xl flex items-center justify-center mx-auto mb-6 transform group-hover:rotate-12 transition-transform duration-500">
-                        <Lock size={40} className="text-secondary opacity-30 group-hover:opacity-60 transition-opacity" />
+            {/* Appearance — fully functional */}
+            <section className="bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-white/5 rounded-3xl p-6 md:p-8 space-y-5">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center">
+                        <Palette size={20} className="text-primary" />
                     </div>
-                    <h2 className="text-3xl font-black tracking-tight text-white/90">Refining Your Experience</h2>
-                    <p className="text-secondary font-medium max-w-sm mx-auto leading-relaxed">
-                        We are currently building out an advanced settings panel giving you 100% control over your account.
-                    </p>
+                    <div>
+                        <h2 className="font-bold text-base">Appearance</h2>
+                        <p className="text-xs text-secondary">Choose how The Trade looks for you.</p>
+                    </div>
                 </div>
 
-                <div className="relative z-10 flex flex-wrap justify-center gap-3">
-                    {categories.map((cat, i) => (
-                        <div key={i} className="flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all cursor-default opacity-60">
-                            <cat.icon size={16} className="text-primary" />
-                            <span className="text-xs font-bold text-white/70">{cat.name}</span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-white dark:bg-zinc-800/60 rounded-2xl border border-zinc-200 dark:border-white/5">
+                    <div>
+                        <p className="text-sm font-bold mb-0.5">Color Theme</p>
+                        <p className="text-xs text-secondary">{THEME_LABELS[theme]}</p>
+                    </div>
+                    <ThemeTogglePill />
+                </div>
+            </section>
+
+            {/* Coming-soon settings grid */}
+            <section className="space-y-4">
+                <div className="flex items-center gap-2 px-1">
+                    <p className="text-xs font-black uppercase tracking-widest text-secondary">Coming Soon</p>
+                    <div className="flex-1 h-px bg-secondary/10" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-40 grayscale pointer-events-none select-none">
+                    {COMING_SOON.map((cat, i) => (
+                        <div key={i} className={cn(
+                            "p-6 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/5 rounded-3xl flex gap-5 blur-[1.5px]"
+                        )}>
+                            <div className="w-12 h-12 bg-secondary/10 rounded-2xl flex items-center justify-center shrink-0">
+                                <cat.icon size={22} className="text-secondary" />
+                            </div>
+                            <div className="space-y-1">
+                                <h3 className="font-bold text-base">{cat.name}</h3>
+                                <p className="text-sm text-secondary leading-relaxed">{cat.description}</p>
+                            </div>
                         </div>
                     ))}
                 </div>
-                
-                <div className="relative z-10 mt-4">
-                    <div className="flex items-center gap-1.5 px-6 py-3 bg-primary/10 rounded-2xl">
-                        <Moon size={16} className="text-primary" />
-                        <span className="text-sm font-black text-primary">Coming VERY Soon</span>
-                    </div>
-                </div>
+            </section>
 
-                <div className="relative z-10 pt-4">
-                    <button 
-                        onClick={() => signOut()}
-                        className="px-8 py-3 bg-red-500 text-white rounded-2xl font-bold flex items-center gap-2 hover:bg-red-600 transition-all active:scale-95 shadow-lg shadow-red-500/20"
-                    >
-                        <Lock size={18} />
-                        Logout Now
-                    </button>
-                </div>
-            </div>
-
-            {/* Placeholder Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-30 grayscale">
-                {categories.map((cat, i) => (
-                    <div key={i} className="p-8 bg-zinc-900/50 border border-white/5 rounded-[2.5rem] flex gap-6 filter blur-[2px] transition-all hover:blur-0 cursor-not-allowed">
-                        <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center shrink-0">
-                            <cat.icon size={24} className="text-secondary" />
-                        </div>
-                        <div className="space-y-1">
-                            <h3 className="font-bold text-lg">{cat.name}</h3>
-                            <p className="text-sm text-secondary line-clamp-2">{cat.description}</p>
-                        </div>
-                    </div>
-                ))}
-            </div>
+            {/* Sign out */}
+            <section className="flex justify-start pt-2">
+                <button
+                    onClick={() => signOut()}
+                    className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 transition-all active:scale-95 shadow-lg shadow-red-500/20 cursor-pointer"
+                >
+                    <Lock size={16} />
+                    Sign Out
+                </button>
+            </section>
         </div>
     );
 }
