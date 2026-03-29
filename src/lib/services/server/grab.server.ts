@@ -17,10 +17,13 @@ export const grabServerService = {
         const formatDate = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
         
         if (lastGrab && lastGrab.toString() !== "Invalid Date" && formatDate(now) !== formatDate(lastGrab)) {
+            // Reset daily counters only — taskRequestStatus is account-level permission,
+            // NOT a daily flag. Resetting it here forces users to re-request every single
+            // day even though admin already approved them, which is the reported bug.
             user.dailyTasksCompleted = 0;
             user.dailyCommission = 0;
             user.lastGrabDate = now;
-            user.taskRequestStatus = "NONE";
+            // comboConfig is day-specific (admin configures per-day combo slots)
             user.comboConfig = [];
             needsSave = true;
         }

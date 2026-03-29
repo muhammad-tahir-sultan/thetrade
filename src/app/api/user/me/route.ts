@@ -52,7 +52,6 @@ export async function GET() {
             status: user.status || "ACTIVE",
             taskRequestStatus: user.taskRequestStatus || "NONE",
             comboConfig: user.comboConfig || [],
-            TEST_FIELD: "IF YOU SEE THIS THE API IS UPDATED"
         });
     } catch (error) {
         return NextResponse.json({ error: "Server error" }, { status: 500 });
