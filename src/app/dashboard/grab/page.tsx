@@ -57,7 +57,7 @@ export default function GrabPage() {
                 </Link>
                 <div className="flex items-center gap-1.5 px-5 py-2 bg-amber-500/10 border border-amber-500/20 rounded-full">
                     <span className="text-xs font-black text-amber-500">{dailyTasksCompleted}/{maxDailyTasks}</span>
-                    <span className="text-[9px] font-bold text-amber-500/60 uppercase tracking-widest">Tasks</span>
+                    <span className="text-[9px] font-bold text-amber-500/60 uppercase tracking-widest">Orders</span>
                 </div>
             </div>
 

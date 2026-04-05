@@ -7,38 +7,19 @@ function getCommissionRate(orderIndex: number): number {
     return 0.01 * Math.pow(1.04, orderIndex - 1);
 }
 
-// UTC-safe date string to avoid timezone-triggered false resets
-function utcDateStr(d: Date): string {
-    return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
-}
-
 export const grabServerService = {
     async grabNewOrder(userId: string) {
         await dbConnect();
         const user = await User.findById(userId);
         if (!user) throw new Error("User not found");
 
-        // ── Daily Reset (counters only, NOT taskRequestStatus) ──
-        const now = new Date();
-        const lastGrab = user.lastGrabDate ? new Date(user.lastGrabDate) : null;
+        // Sanity checks — ensure numeric fields are valid, never reset progress
         let needsSave = false;
-
-        if (lastGrab && lastGrab.toString() !== "Invalid Date" && utcDateStr(now) !== utcDateStr(lastGrab)) {
-            user.dailyTasksCompleted = 0;
-            user.dailyCommission = 0;
-            user.lastGrabDate = now;
-            user.comboConfig = [];
-            needsSave = true;
-        }
-
-        // Sanity checks
         if (typeof user.dailyTasksCompleted !== "number" || isNaN(user.dailyTasksCompleted)) { user.dailyTasksCompleted = 0; needsSave = true; }
         if (typeof user.dailyCommission !== "number" || isNaN(user.dailyCommission)) { user.dailyCommission = 0; needsSave = true; }
         if (typeof user.totalCommission !== "number" || isNaN(user.totalCommission)) { user.totalCommission = 0; needsSave = true; }
-        if (!user.lastGrabDate) { user.lastGrabDate = now; needsSave = true; }
         if (!user.maxDailyTasks) { user.maxDailyTasks = 25; needsSave = true; }
         if (!user.taskRequestStatus) { user.taskRequestStatus = "NONE"; needsSave = true; }
-
         if (needsSave) await user.save();
 
         // ── Guards ──
@@ -144,7 +125,6 @@ export const grabServerService = {
         user.totalCommission = parseFloat((user.totalCommission + order.commission).toFixed(4));
         user.dailyCommission = parseFloat((user.dailyCommission + order.commission).toFixed(4));
         user.dailyTasksCompleted += 1;
-        user.lastGrabDate = new Date();
         user.status = "ACTIVE";
         await user.save();
 

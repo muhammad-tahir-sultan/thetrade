@@ -30,6 +30,9 @@ export async function POST(req: Request) {
 
         user.taskRequestStatus = "APPROVED";
         user.comboConfig = comboConfig || [];
+        // Reset progress so the user starts a fresh batch of tasks
+        user.dailyTasksCompleted = 0;
+        user.dailyCommission = 0;
         await user.save();
 
         return NextResponse.json({ message: "Tasks approved and configured" });

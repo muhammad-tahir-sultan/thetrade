@@ -17,7 +17,7 @@ export function GrabStats() {
             <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-primary/5 blur-[60px] rounded-full pointer-events-none" />
 
             <div className="space-y-1 relative z-10 text-center border-r border-zinc-100 dark:border-white/5">
-                <p className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase tracking-widest font-black">Today's Earnings</p>
+                <p className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase tracking-widest font-black">Total Earnings</p>
                 <p className="text-2xl font-black text-amber-500">
                     ${dailyCommission.toFixed(2)}
                 </p>
