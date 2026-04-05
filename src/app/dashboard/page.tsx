@@ -17,36 +17,75 @@ const QUICK_ACTIONS = [
     { label: "Invite", icon: Mail, bg: "bg-teal-500", href: null },
 ];
 
-function WithdrawModal({ isOpen, onClose, balance, onWithdraw, isPending }: {
+function WithdrawModal({ isOpen, onClose, balance, dailyTasksCompleted, maxDailyTasks, onWithdraw, isPending }: {
     isOpen: boolean; onClose: () => void; balance: number;
-    onWithdraw: (amount: number) => Promise<void>; isPending: boolean;
+    dailyTasksCompleted: number; maxDailyTasks: number;
+    onWithdraw: (amount: number, address: string, network: string) => Promise<void>; isPending: boolean;
 }) {
     const [amount, setAmount] = useState("");
+    const [address, setAddress] = useState("");
+    const tasksComplete = dailyTasksCompleted >= maxDailyTasks;
+
     if (!isOpen) return null;
+
     const handleSubmit = async () => {
+        if (!tasksComplete) { toast.error(`Complete all ${maxDailyTasks} orders first`); return; }
         const val = Number(amount);
         if (!val || val <= 0) { toast.error("Enter a valid amount"); return; }
         if (val > balance) { toast.error("Insufficient balance"); return; }
-        try { await onWithdraw(val); onClose(); setAmount(""); }
+        if (!address.trim()) { toast.error("Enter your wallet address"); return; }
+        try { await onWithdraw(val, address.trim(), "Binance (TRC-20)"); onClose(); setAmount(""); setAddress(""); }
         catch (e: any) { toast.error(e.message); }
     };
+
     return (
         <div className="fixed inset-0 z-110 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-zinc-950 w-full max-w-sm rounded-t-[2.5rem] sm:rounded-4xl p-8 space-y-6 animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-500">
+            <div className="bg-white dark:bg-zinc-950 w-full max-w-sm rounded-t-[2.5rem] sm:rounded-4xl p-8 space-y-5 animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-500">
                 <div className="flex items-center justify-between">
                     <h3 className="text-xl font-black">Withdrawal</h3>
                     <button onClick={onClose} className="p-2 text-zinc-400 hover:text-zinc-600 rounded-xl transition-colors cursor-pointer"><X size={20} /></button>
                 </div>
-                <p className="text-xs text-secondary">Available: <strong className="text-foreground">{balance.toFixed(4)} USDT</strong></p>
-                <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary font-bold">$</span>
-                    <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
-                        className="w-full pl-9 pr-4 py-4 bg-secondary/5 border border-secondary/10 rounded-2xl font-bold text-lg focus:border-primary/50 outline-none transition-all"
-                        placeholder="0.00" />
+
+                {/* Tasks gate */}
+                {!tasksComplete && (
+                    <div className="p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl text-center space-y-1">
+                        <p className="text-sm font-black text-amber-600 dark:text-amber-400">Orders Required</p>
+                        <p className="text-xs text-amber-600/80 dark:text-amber-400/80">
+                            Complete all {maxDailyTasks} daily orders to unlock withdrawal.
+                        </p>
+                        <p className="text-lg font-black text-amber-500 mt-1">{dailyTasksCompleted} / {maxDailyTasks}</p>
+                    </div>
+                )}
+
+                <div className="space-y-3">
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-secondary mb-1.5">Network</p>
+                        <div className="px-4 py-3 bg-secondary/5 border border-secondary/10 rounded-2xl font-bold text-sm text-foreground">
+                            Binance (TRC-20)
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-secondary mb-1.5">Wallet Address</p>
+                        <input value={address} onChange={(e) => setAddress(e.target.value)} disabled={!tasksComplete}
+                            className="w-full px-4 py-3 bg-secondary/5 border border-secondary/10 rounded-2xl font-mono text-sm focus:border-primary/50 outline-none transition-all disabled:opacity-40"
+                            placeholder="Enter your USDT TRC-20 address" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-secondary mb-1.5">
+                            Amount <span className="text-zinc-400 normal-case font-medium">({balance.toFixed(2)} USDT available)</span>
+                        </p>
+                        <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary font-bold text-sm">$</span>
+                            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} disabled={!tasksComplete}
+                                className="w-full pl-9 pr-4 py-3 bg-secondary/5 border border-secondary/10 rounded-2xl font-bold text-base focus:border-primary/50 outline-none transition-all disabled:opacity-40"
+                                placeholder="0.00" />
+                        </div>
+                    </div>
                 </div>
-                <button onClick={handleSubmit} disabled={isPending}
-                    className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer">
-                    {isPending ? "Submitting..." : "Submit Withdrawal"}
+
+                <button onClick={handleSubmit} disabled={isPending || !tasksComplete}
+                    className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-40 cursor-pointer">
+                    {isPending ? "Submitting..." : "Submit Withdrawal Request"}
                 </button>
             </div>
         </div>
@@ -55,7 +94,7 @@ function WithdrawModal({ isOpen, onClose, balance, onWithdraw, isPending }: {
 
 export default function MinePage() {
     const { data: session } = useSession();
-    const { user, balance, isProcessing, createTransaction } = useTrading();
+    const { user, balance, dailyTasksCompleted, maxDailyTasks, isProcessing, createTransaction } = useTrading();
     const [showDeposit, setShowDeposit] = useState(false);
     const [showWithdraw, setShowWithdraw] = useState(false);
 
@@ -133,9 +172,11 @@ export default function MinePage() {
                 isOpen={showWithdraw}
                 onClose={() => setShowWithdraw(false)}
                 balance={balance}
-                onWithdraw={async (amount) => {
-                    await createTransaction({ type: "WITHDRAW", amount });
-                    toast.success("Withdrawal request submitted!");
+                dailyTasksCompleted={dailyTasksCompleted}
+                maxDailyTasks={maxDailyTasks}
+                onWithdraw={async (amount, withdrawAddress, withdrawNetwork) => {
+                    await createTransaction({ type: "WITHDRAW", amount, withdrawAddress, withdrawNetwork });
+                    toast.success("Withdrawal request submitted! Admin will review shortly.");
                 }}
                 isPending={isProcessing}
             />

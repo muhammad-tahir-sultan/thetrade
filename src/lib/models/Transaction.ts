@@ -9,6 +9,9 @@ const TransactionSchema = new Schema({
     screenshotNote: { type: String, default: "" },
     // Deposit address used for this transaction (snapshot at time of request)
     depositAddress: { type: String, default: "" },
+    // Withdraw: user's wallet address + network label
+    withdrawAddress: { type: String, default: "" },
+    withdrawNetwork: { type: String, default: "" },
     createdAt: { type: Date, default: Date.now },
 });
 

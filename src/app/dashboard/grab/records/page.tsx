@@ -10,7 +10,7 @@ import { OrderModal } from "@/components/dashboard/OrderModal";
 import { DepositModal } from "@/components/dashboard/DepositModal";
 
 export default function GrabRecordsPage() {
-    const { records, isLoadingRecords, refetchRecords, completeOrder, isCompleting } = useGrabOrder();
+    const { records, isLoadingRecords, refetchRecords, completeOrder, isCompleting, cancelOrder, isCancelling } = useGrabOrder();
     const { createTransaction, isProcessing } = useTrading();
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
     const [orderError, setOrderError] = useState<string | null>(null);
@@ -65,6 +65,8 @@ export default function GrabRecordsPage() {
                         records={records}
                         onAction={(order) => setSelectedOrder(order)}
                         onDepositRequired={(order) => setDepositOrder(order)}
+                        onCancel={async (orderId) => { await cancelOrder(orderId); }}
+                        isCancelling={isCancelling}
                     />
                 )}
             </div>

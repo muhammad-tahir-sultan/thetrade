@@ -32,6 +32,16 @@ export function useGrabOrder() {
         },
     });
 
+    const cancelMutation = useMutation({
+        mutationFn: (orderId: string) => grabService.cancelOrder(orderId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["grab-records"] });
+            queryClient.invalidateQueries({ queryKey: ["user-me"] });
+            toast.success("Order cancelled");
+        },
+        onError: (error: any) => toast.error(error.message || "Failed to cancel order"),
+    });
+
     const csMutation = useMutation({
         mutationFn: grabService.requestCS,
         onSuccess: () => {
@@ -47,9 +57,11 @@ export function useGrabOrder() {
     return {
         grabOrder: grabMutation.mutateAsync,
         completeOrder: completeMutation.mutateAsync,
+        cancelOrder: cancelMutation.mutateAsync,
         requestCS: csMutation.mutateAsync,
         isGrabbing: grabMutation.isPending,
         isCompleting: completeMutation.isPending,
+        isCancelling: cancelMutation.isPending,
         isRequesting: csMutation.isPending,
         currentOrder: grabMutation.data?.order,
         isCombo: grabMutation.data?.isCombo,

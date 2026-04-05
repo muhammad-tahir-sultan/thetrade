@@ -19,5 +19,10 @@ export const grabService = {
     async getRecords() {
         const res = await apiClient.get("/grab/records");
         return res.data;
-    }
+    },
+
+    async cancelOrder(orderId: string) {
+        const res = await apiClient.post("/grab/cancel", { orderId });
+        return res.data;
+    },
 };

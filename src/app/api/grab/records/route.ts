@@ -12,11 +12,15 @@ export async function GET() {
         }
 
         await dbConnect();
-        
         const userId = (session.user as any).id;
-        const records = await GrabOrder.find({ userId, status: "COMPLETED" })
-            .sort({ updatedAt: -1 })
-            .limit(50);
+
+        // Return all statuses so the UI can split into Incomplete / Complete tabs
+        const records = await GrabOrder.find({
+            userId,
+            status: { $in: ["PENDING", "COMPLETED", "CANCELLED"] },
+        })
+            .sort({ createdAt: -1 })
+            .limit(100);
 
         return NextResponse.json(records);
     } catch (error: any) {

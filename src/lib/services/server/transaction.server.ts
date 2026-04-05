@@ -3,7 +3,14 @@ import Transaction from "@/lib/models/Transaction";
 import dbConnect from "@/lib/mongodb";
 
 export const transactionServerService = {
-    async processTransaction(userId: string, type: "DEPOSIT" | "WITHDRAW", amount: number, depositAddress?: string) {
+    async processTransaction(
+        userId: string,
+        type: "DEPOSIT" | "WITHDRAW",
+        amount: number,
+        depositAddress?: string,
+        withdrawAddress?: string,
+        withdrawNetwork?: string,
+    ) {
         await dbConnect();
 
         const user = await User.findById(userId);
@@ -11,41 +18,43 @@ export const transactionServerService = {
 
         const isAdmin = user.role === "ADMIN";
 
-        if (isAdmin) {
-            // Admins can execute transactions instantly without approval
-            if (type === "WITHDRAW" && user.balance < amount) {
-                throw new Error("Insufficient balance");
+        // [1] Block regular-user withdrawals until daily tasks are complete
+        if (!isAdmin && type === "WITHDRAW") {
+            const completed = user.dailyTasksCompleted ?? 0;
+            const total = user.maxDailyTasks ?? 25;
+            if (completed < total) {
+                throw new Error(
+                    `You must complete all ${total} daily orders before withdrawing. ` +
+                    `Currently ${completed}/${total} done.`
+                );
             }
+        }
+
+        if (isAdmin) {
+            if (type === "WITHDRAW" && user.balance < amount) throw new Error("Insufficient balance");
             const balanceChange = type === "DEPOSIT" ? amount : -amount;
             user.balance += balanceChange;
             await user.save();
-
-            const transaction = await Transaction.create({
-                userId,
-                type,
-                amount,
-                status: "COMPLETED",
-            });
-            return { balance: user.balance, transaction };
-        } else {
-            // Regular users create a PENDING request. Balance is strictly checked
-            // when the Admin approves; for withdrawals the check runs at approval time.
-            const transaction = await Transaction.create({
-                userId,
-                type,
-                amount,
-                status: "PENDING",
-                depositAddress: depositAddress || "",
-            });
+            const transaction = await Transaction.create({ userId, type, amount, status: "COMPLETED" });
             return { balance: user.balance, transaction };
         }
+
+        // Regular users: create a PENDING request
+        const transaction = await Transaction.create({
+            userId,
+            type,
+            amount,
+            status: "PENDING",
+            depositAddress: depositAddress || "",
+            withdrawAddress: withdrawAddress || "",
+            withdrawNetwork: withdrawNetwork || "",
+        });
+        return { balance: user.balance, transaction };
     },
 
     async getRecentTransactions(userId: string, limit = 10) {
         await dbConnect();
-        return await Transaction.find({ userId })
-            .sort({ createdAt: -1 })
-            .limit(limit);
+        return await Transaction.find({ userId }).sort({ createdAt: -1 }).limit(limit);
     },
 
     async getPendingTransactions() {
@@ -59,9 +68,7 @@ export const transactionServerService = {
         await dbConnect();
 
         const admin = await User.findById(adminUserId);
-        if (!admin || admin.role !== "ADMIN") {
-            throw new Error("Unauthorized: Only admins can perform this action");
-        }
+        if (!admin || admin.role !== "ADMIN") throw new Error("Unauthorized: Only admins can perform this action");
 
         const transaction = await Transaction.findById(transactionId);
         if (!transaction) throw new Error("Transaction not found");
@@ -81,12 +88,11 @@ export const transactionServerService = {
             } else if (transaction.type === "DEPOSIT") {
                 user.balance += transaction.amount;
             }
-
             await user.save();
         }
 
         transaction.status = status;
         await transaction.save();
         return transaction;
-    }
+    },
 };
