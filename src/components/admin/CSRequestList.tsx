@@ -1,6 +1,7 @@
 "use client";
 
-import { CheckCircle, XCircle, Info } from "lucide-react";
+import { CheckCircle, XCircle } from "lucide-react";
+import Image from "next/image";
 
 interface CSRequestListProps {
     requests: any[];
@@ -33,7 +34,7 @@ export function CSRequestList({ requests, onResolve, isUpdating }: CSRequestList
                     <tr className="border-b border-secondary/10 bg-secondary/5">
                         <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">User</th>
                         <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">Request Type</th>
-                        <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">Order Info</th>
+                        <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">Details</th>
                         <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">Time</th>
                         <th className="p-3 sm:p-6 font-bold text-secondary text-xs sm:text-sm uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
                     </tr>
@@ -53,15 +54,38 @@ export function CSRequestList({ requests, onResolve, isUpdating }: CSRequestList
                                     {req.type}
                                 </span>
                             </td>
-                            <td className="p-3 sm:p-6 whitespace-nowrap">
-                                {req.orderId ? (
-                                    <div className="text-xs">
-                                        <p className="font-bold">Price: ${req.orderId.price?.toFixed(2)}</p>
-                                        <p className="text-secondary">Profit: ${req.orderId.commission?.toFixed(2)}</p>
-                                    </div>
-                                ) : (
-                                    <span className="text-secondary text-xs font-medium">No order linked</span>
-                                )}
+                            <td className="p-3 sm:p-6">
+                                <div className="space-y-2 max-w-[320px]">
+                                    {req.message && (
+                                        <p className="text-xs text-secondary leading-relaxed">{req.message}</p>
+                                    )}
+                                    {req.depositAmount > 0 && (
+                                        <p className="text-xs font-bold">
+                                            Claimed amount: <span className="text-foreground">${Number(req.depositAmount).toFixed(2)} USDT</span>
+                                        </p>
+                                    )}
+                                    {req.screenshotUrl ? (
+                                        <a
+                                            href={req.screenshotUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-2 text-xs font-bold text-primary hover:underline"
+                                        >
+                                            <span className="relative w-14 h-14 rounded-lg overflow-hidden border border-secondary/10 shrink-0">
+                                                <Image src={req.screenshotUrl} alt="Payment screenshot" fill className="object-cover" unoptimized />
+                                            </span>
+                                            Open screenshot
+                                        </a>
+                                    ) : (
+                                        <span className="text-secondary text-xs font-medium">No screenshot attached</span>
+                                    )}
+                                    {req.orderId && (
+                                        <div className="text-xs pt-1 border-t border-secondary/10">
+                                            <p className="font-bold">Order price: ${req.orderId.price?.toFixed(2)}</p>
+                                            <p className="text-secondary">Commission: ${req.orderId.commission?.toFixed(2)}</p>
+                                        </div>
+                                    )}
+                                </div>
                             </td>
                             <td className="p-3 sm:p-6 text-xs font-medium text-secondary whitespace-nowrap">
                                 {new Date(req.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} <br/>
@@ -73,7 +97,7 @@ export function CSRequestList({ requests, onResolve, isUpdating }: CSRequestList
                                     onClick={() => onResolve(req._id)}
                                     className="px-4 py-2 bg-green-500/10 text-green-500 hover:bg-green-500/20 rounded-xl transition-all font-bold flex items-center gap-2 text-xs cursor-pointer"
                                 >
-                                    <CheckCircle size={14} /> Resolve (Unlock)
+                                    <CheckCircle size={14} /> {req.type === "COMBO_UNLOCK" ? "Resolve (Unlock)" : "Mark Resolved"}
                                 </button>
                             </td>
                         </tr>

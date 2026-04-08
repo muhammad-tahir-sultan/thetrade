@@ -133,8 +133,8 @@ export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending,
                 <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
                     {/* Step + Dynamic header */}
                     <div className="text-center">
-                        <p className="text-3xl font-black text-zinc-800 dark:text-zinc-100 leading-none">
-                            {showQr ? "2" : "1"}
+                        <p className="text-sm font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 leading-none">
+                            {showQr ? "Step 2" : "Step 1"}
                         </p>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-1">Network - {addr.network}</p>
                         {amount && (

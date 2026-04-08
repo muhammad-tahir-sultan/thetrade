@@ -11,8 +11,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { orderId, message, type } = await req.json();
+        const { orderId, message, type, screenshotUrl, screenshotPublicId, depositAmount } = await req.json();
         const userId = (session.user as any).id;
+        const requestType = type || "COMBO_UNLOCK";
         
         await dbConnect();
 
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
         const existingRequest = await CSRequest.findOne({
             userId,
             status: { $in: ["OPEN", "IN_PROGRESS"] },
-            type: type || "COMBO_UNLOCK"
+            type: requestType
         });
 
         if (existingRequest) {
@@ -30,12 +31,22 @@ export async function POST(req: Request) {
             );
         }
 
+        if (requestType === "DEPOSIT_HELP" && !screenshotUrl) {
+            return NextResponse.json(
+                { error: "Please upload your payment screenshot before submitting." },
+                { status: 400 }
+            );
+        }
+
         // 2. Create the request
         const request = await CSRequest.create({
             userId,
             orderId,
             message,
-            type: type || "COMBO_UNLOCK",
+            type: requestType,
+            screenshotUrl: screenshotUrl || "",
+            screenshotPublicId: screenshotPublicId || "",
+            depositAmount: Number(depositAmount) || 0,
             status: "OPEN",
             userNotified: false
         });

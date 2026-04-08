@@ -1,7 +1,10 @@
 "use client";
 
-import { Headphones, MessageCircle, Clock, Shield, ArrowLeft } from "lucide-react";
+import { useState } from "react";
+import { Headphones, MessageCircle, Clock, Shield, ArrowLeft, Upload, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import Image from "next/image";
 
 const SUPPORT_ITEMS = [
     {
@@ -29,10 +32,70 @@ const SUPPORT_ITEMS = [
 
 export default function ServicePage() {
     const router = useRouter();
+    const [amount, setAmount] = useState("");
+    const [note, setNote] = useState("");
+    const [file, setFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [previewError, setPreviewError] = useState<string | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+
+    const onPickFile = (f: File | null) => {
+        setFile(f);
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+        setPreviewError(null);
+        if (!f) return;
+        if (!f.type.startsWith("image/")) {
+            setPreviewError("Please choose an image file (PNG/JPG).");
+            return;
+        }
+        const url = URL.createObjectURL(f);
+        setPreviewUrl(url);
+    };
+
+    const submitPaymentProof = async () => {
+        const val = Number(amount);
+        if (!val || val <= 0) { toast.error("Enter the amount you paid"); return; }
+        if (!file) { toast.error("Upload your payment screenshot"); return; }
+
+        setSubmitting(true);
+        try {
+            const fd = new FormData();
+            fd.append("file", file);
+            const up = await fetch("/api/upload/payment-screenshot", { method: "POST", body: fd });
+            const upJson = await up.json();
+            if (!up.ok) throw new Error(upJson.error || "Upload failed");
+
+            const cs = await fetch("/api/cs/request", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    type: "DEPOSIT_HELP",
+                    message: note.trim() || `Payment proof submitted for ${val.toFixed(2)} USDT (TRC-20).`,
+                    depositAmount: val,
+                    screenshotUrl: upJson.secureUrl,
+                    screenshotPublicId: upJson.publicId,
+                }),
+            });
+            const csJson = await cs.json();
+            if (!cs.ok) throw new Error(csJson.error || "Failed to submit request");
+
+            toast.success("Submitted! Admin will review your payment screenshot.");
+            setAmount("");
+            setNote("");
+            setFile(null);
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : "Submission failed";
+            toast.error(msg);
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     return (
         <div className="max-w-lg mx-auto px-4 py-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
-            {/* Header */}
             <div className="flex items-center gap-4">
                 <button onClick={() => router.back()}
                     className="p-3 bg-secondary/10 hover:bg-secondary/20 rounded-full text-secondary transition-all cursor-pointer">
@@ -40,11 +103,10 @@ export default function ServicePage() {
                 </button>
                 <div>
                     <h1 className="text-2xl font-black tracking-tight">Customer Service</h1>
-                    <p className="text-secondary text-xs font-medium">We're here to help you</p>
+                    <p className="text-secondary text-xs font-medium">We&apos;re here to help you</p>
                 </div>
             </div>
 
-            {/* Hero icon */}
             <div className="flex flex-col items-center gap-4 py-10 bg-secondary/5 rounded-4xl border border-secondary/10">
                 <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center">
                     <Headphones className="text-primary" size={40} />
@@ -52,12 +114,50 @@ export default function ServicePage() {
                 <div className="text-center space-y-1">
                     <p className="font-black text-lg">How can we help?</p>
                     <p className="text-secondary text-sm max-w-[240px] leading-relaxed">
-                        For combo order unlocks, deposits, or account issues — reach out anytime.
+                        After paying, upload your payment screenshot here so admin can verify faster.
                     </p>
                 </div>
             </div>
 
-            {/* Support features */}
+            <div className="space-y-3">
+                <div className="p-5 bg-secondary/5 border border-secondary/10 rounded-3xl space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-secondary">Amount paid (USDT)</p>
+                    <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary font-bold">$</span>
+                        <input value={amount} onChange={(e) => setAmount(e.target.value)} type="number"
+                            className="w-full pl-10 pr-4 py-3.5 bg-background border border-secondary/10 rounded-2xl font-bold focus:border-primary/50 outline-none transition-all" placeholder="0.00" />
+                    </div>
+                </div>
+
+                <div className="p-5 bg-secondary/5 border border-secondary/10 rounded-3xl space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-secondary">Payment screenshot</p>
+                    <label className="flex items-center justify-center gap-2 w-full py-4 border-2 border-dashed border-secondary/20 rounded-2xl cursor-pointer hover:bg-secondary/5 transition-colors">
+                        <Upload size={18} className="text-primary" />
+                        <span className="text-sm font-bold text-primary">{file ? "Change image" : "Choose image"}</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => onPickFile(e.target.files?.[0] ?? null)} />
+                    </label>
+                    {previewError && <p className="text-xs text-red-500 font-bold">{previewError}</p>}
+                    {previewUrl && !previewError && (
+                        <div className="relative w-full h-56 rounded-2xl border border-secondary/10 bg-background overflow-hidden">
+                            <Image src={previewUrl} alt="Preview" fill className="object-contain" unoptimized />
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-5 bg-secondary/5 border border-secondary/10 rounded-3xl space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-secondary">Note (optional)</p>
+                    <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3}
+                        className="w-full px-4 py-3 bg-background border border-secondary/10 rounded-2xl text-sm focus:border-primary/50 outline-none transition-all resize-none"
+                        placeholder="Transaction hash, time, or any extra info..." />
+                </div>
+
+                <button onClick={submitPaymentProof} disabled={submitting}
+                    className="flex items-center justify-center gap-2 w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer">
+                    {submitting ? <Loader2 size={18} className="animate-spin" /> : <MessageCircle size={18} />}
+                    {submitting ? "Submitting..." : "Submit Payment Proof"}
+                </button>
+            </div>
+
             <div className="space-y-3">
                 {SUPPORT_ITEMS.map(({ icon: Icon, bg, color, title, desc }) => (
                     <div key={title} className="flex items-start gap-4 p-5 bg-secondary/5 border border-secondary/10 rounded-3xl">
@@ -71,15 +171,6 @@ export default function ServicePage() {
                     </div>
                 ))}
             </div>
-
-            {/* CTA */}
-            <a
-                href="mailto:support@thetrade.app"
-                className="flex items-center justify-center gap-2 w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all"
-            >
-                <MessageCircle size={18} />
-                Contact Support
-            </a>
         </div>
     );
 }
