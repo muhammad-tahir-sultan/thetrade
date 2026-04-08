@@ -22,14 +22,15 @@ export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending,
     const [loading, setLoading] = useState(false);
     const [copied, setCopied] = useState(false);
     const [amount, setAmount] = useState(requiredAmount?.toString() ?? "");
+    const [showQr, setShowQr] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [submittedAmount, setSubmittedAmount] = useState(0);
 
     useEffect(() => {
         if (!isOpen) { setSubmitted(false); return; }
         setAmount(requiredAmount?.toString() ?? "");
+        setShowQr(false);
         setSubmitted(false);
-        fetchAddress();
     }, [isOpen, requiredAmount]);
 
     const fetchAddress = async () => {
@@ -58,6 +59,19 @@ export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending,
             setSubmittedAmount(val);
             setSubmitted(true);
         } catch (e: any) { toast.error(e.message ?? "Submission failed"); }
+    };
+
+    const handleContinueToQr = async () => {
+        const val = Number(amount);
+        if (!val || val <= 0) { toast.error("Enter deposit amount first"); return; }
+        if (requiredAmount && val < requiredAmount) {
+            toast.error(`Minimum required for this order is ${requiredAmount.toFixed(4)} USDT`);
+            return;
+        }
+        setShowQr(true);
+        if (!addr.address && !loading) {
+            await fetchAddress();
+        }
     };
 
     if (!isOpen) return null;
@@ -117,10 +131,17 @@ export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending,
                 </div>
 
                 <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
-                    {/* Step + Network */}
+                    {/* Step + Dynamic header */}
                     <div className="text-center">
-                        <p className="text-3xl font-black text-zinc-800 dark:text-zinc-100 leading-none">1</p>
+                        <p className="text-3xl font-black text-zinc-800 dark:text-zinc-100 leading-none">
+                            {showQr ? "2" : "1"}
+                        </p>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-1">Network - {addr.network}</p>
+                        {amount && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 font-black mt-1.5">
+                                Amount: {Number(amount).toFixed(2)} USDT
+                            </p>
+                        )}
                     </div>
 
                     {/* Warning — only for combo/required deposits */}
@@ -133,52 +154,68 @@ export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending,
                         </div>
                     )}
 
-                    {/* QR + Address */}
-                    <div className="flex flex-col items-center gap-4">
-                        <p className="text-xs text-amber-600 dark:text-amber-400 font-bold tracking-widest uppercase">One Time Address:</p>
-
-                        {loading ? (
-                            <div className="w-52 h-52 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center">
-                                <Loader2 className="animate-spin text-zinc-400" size={32} />
-                            </div>
-                        ) : addr.address ? (
-                            <div className="p-4 bg-white rounded-2xl shadow-md border border-black/5">
-                                <QRCodeSVG value={addr.address} size={192} level="H" includeMargin={false} />
-                            </div>
-                        ) : (
-                            <div className="w-52 h-52 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-400 text-xs text-center px-6">
-                                No deposit address configured yet.<br />Contact support.
-                            </div>
-                        )}
-
-                        {/* Address row — plain text + copy icon (matches reference) */}
-                        {addr.address && (
-                            <div className="flex items-center gap-2 w-full max-w-xs">
-                                <span className="text-[11px] font-mono text-zinc-600 dark:text-zinc-400 flex-1 break-all leading-relaxed">{addr.address}</span>
-                                <button onClick={handleCopy} className="p-2 shrink-0 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-pointer">
-                                    {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-                                </button>
-                            </div>
-                        )}
-
-                        <p className="text-sm font-bold text-zinc-400 animate-pulse">Waiting for payment...</p>
-                    </div>
-
-                    {/* Amount input + submit */}
-                    {onSubmitPending && (
-                        <div className="space-y-3 pt-2 border-t border-black/5 dark:border-white/5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Enter amount you sent (USDT)</label>
+                    {!showQr ? (
+                        <div className="space-y-3 pt-1">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Enter deposit amount (USDT)</label>
                             <div className="relative">
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-sm">$</span>
-                                <input type="number" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)}
-                                    className="w-full pl-9 pr-4 py-3.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl font-bold text-base focus:border-primary/50 outline-none transition-all" />
+                                <input
+                                    type="number"
+                                    placeholder="0.00"
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
+                                    className="w-full pl-9 pr-4 py-3.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl font-bold text-base focus:border-primary/50 outline-none transition-all"
+                                />
                             </div>
-                            <button onClick={handleSubmit} disabled={isPending || !addr.address || !amount}
-                                className={cn("w-full py-4 bg-green-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-green-500/20 hover:bg-green-600 active:scale-[0.98] transition-all cursor-pointer",
-                                    (isPending || !addr.address || !amount) && "opacity-50 cursor-not-allowed")}>
-                                {isPending ? "Submitting..." : "I Have Paid — Submit Request"}
+                            <button
+                                onClick={handleContinueToQr}
+                                className={cn("w-full py-4 bg-primary text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer", !amount && "opacity-50")}
+                            >
+                                Continue to QR
                             </button>
                         </div>
+                    ) : (
+                        <>
+                            {/* QR + Address */}
+                            <div className="flex flex-col items-center gap-4">
+                                <p className="text-xs text-amber-600 dark:text-amber-400 font-bold tracking-widest uppercase">One Time Address:</p>
+
+                                {loading ? (
+                                    <div className="w-52 h-52 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center">
+                                        <Loader2 className="animate-spin text-zinc-400" size={32} />
+                                    </div>
+                                ) : addr.address ? (
+                                    <div className="p-4 bg-white rounded-2xl shadow-md border border-black/5">
+                                        <QRCodeSVG value={addr.address} size={192} level="H" includeMargin={false} />
+                                    </div>
+                                ) : (
+                                    <div className="w-52 h-52 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-400 text-xs text-center px-6">
+                                        No deposit address configured yet.<br />Contact support.
+                                    </div>
+                                )}
+
+                                {addr.address && (
+                                    <div className="flex items-center gap-2 w-full max-w-xs">
+                                        <span className="text-[11px] font-mono text-zinc-600 dark:text-zinc-400 flex-1 break-all leading-relaxed">{addr.address}</span>
+                                        <button onClick={handleCopy} className="p-2 shrink-0 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-pointer">
+                                            {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                                        </button>
+                                    </div>
+                                )}
+
+                                <p className="text-sm font-bold text-zinc-400 animate-pulse">Waiting for payment...</p>
+                            </div>
+
+                            {onSubmitPending && (
+                                <div className="space-y-3 pt-2 border-t border-black/5 dark:border-white/5">
+                                    <button onClick={handleSubmit} disabled={isPending || !addr.address || !amount}
+                                        className={cn("w-full py-4 bg-green-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-green-500/20 hover:bg-green-600 active:scale-[0.98] transition-all cursor-pointer",
+                                            (isPending || !addr.address || !amount) && "opacity-50 cursor-not-allowed")}>
+                                        {isPending ? "Submitting..." : "I Have Paid — Submit Request"}
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {/* Tips */}
