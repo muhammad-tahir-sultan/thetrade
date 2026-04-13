@@ -4,6 +4,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTrading } from "@/hooks/useTrading";
+import type { LucideIcon } from "lucide-react";
 import { LogOut, Menu as MenuIcon, X, Shield, Home, Headphones, ShoppingBag, Receipt, User } from "lucide-react";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { NotificationManager } from "@/components/dashboard/NotificationManager";
@@ -11,11 +12,17 @@ import { ThemeToggleIcon } from "@/components/ThemeToggle";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-const MOBILE_NAV = [
+const MOBILE_NAV: {
+    label: string;
+    /** Optional second line under label (mobile bottom nav) */
+    sublabel?: string;
+    icon: LucideIcon;
+    href: string;
+}[] = [
     { label: "Home", icon: Home, href: "/dashboard/grab" },
     { label: "Service", icon: Headphones, href: "/dashboard/service" },
-    { label: "Menu", icon: ShoppingBag, href: "/dashboard/grab/records" },
-    { label: "Record", icon: Receipt, href: "/dashboard/history" },
+    { label: "Record", icon: ShoppingBag, href: "/dashboard/grab/records" },
+    { label: "Transaction", sublabel: "History", icon: Receipt, href: "/dashboard/history" },
     { label: "Mine", icon: User, href: "/dashboard" },
 ];
 
@@ -86,7 +93,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 )}>
                                 <div className="flex items-center gap-4">
                                     <item.icon size={20} />
-                                    <span>{item.label}</span>
+                                    <span>{item.sublabel ? `${item.label} ${item.sublabel}` : item.label}</span>
                                 </div>
                                 {item.label === "Admin" && adminNotifications.count > 0 && (
                                     <span className="min-w-[20px] h-5 px-1.5 text-[10px] font-black bg-red-500 text-white rounded-full flex items-center justify-center animate-pulse">
@@ -146,7 +153,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 isActive ? "text-primary" : "text-secondary"
                             )}>
                             <item.icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-                            <span className="text-[9px] font-black uppercase tracking-wider">{item.label}</span>
+                            <span className="text-[8px] font-black uppercase tracking-tight text-center leading-tight max-w-[52px]">
+                                {item.sublabel ? (
+                                    <>
+                                        <span className="block">{item.label}</span>
+                                        <span className="block">{item.sublabel}</span>
+                                    </>
+                                ) : (
+                                    item.label
+                                )}
+                            </span>
                         </Link>
                     );
                 })}
