@@ -2,6 +2,24 @@ import User from "@/lib/models/User";
 import Transaction from "@/lib/models/Transaction";
 import dbConnect from "@/lib/mongodb";
 
+/** After balance is credited, allow combo submit when wallet meets admin-set `requiredDeposit`. */
+async function authorizeComboAfterDeposit(userId: string, balanceAfter: number) {
+    const GrabOrder = (await import("@/lib/models/GrabOrder")).default;
+    const pendingCombos = await GrabOrder.find({
+        userId,
+        status: "PENDING",
+        isCombo: true,
+        isAdminAuthorized: false,
+    });
+    for (const o of pendingCombos) {
+        const need = Number(o.requiredDeposit) || 0;
+        if (need > 0 && balanceAfter >= need) {
+            o.isAdminAuthorized = true;
+            await o.save();
+        }
+    }
+}
+
 export const transactionServerService = {
     async processTransaction(
         userId: string,
@@ -36,6 +54,9 @@ export const transactionServerService = {
             user.balance += balanceChange;
             await user.save();
             const transaction = await Transaction.create({ userId, type, amount, status: "COMPLETED" });
+            if (type === "DEPOSIT") {
+                await authorizeComboAfterDeposit(user._id.toString(), user.balance);
+            }
             return { balance: user.balance, transaction };
         }
 
@@ -89,6 +110,10 @@ export const transactionServerService = {
                 user.balance += transaction.amount;
             }
             await user.save();
+
+            if (transaction.type === "DEPOSIT") {
+                await authorizeComboAfterDeposit(user._id.toString(), user.balance);
+            }
         }
 
         transaction.status = status;

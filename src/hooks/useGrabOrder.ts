@@ -52,6 +52,9 @@ export function useGrabOrder() {
     const { data: records, isLoading: isLoadingRecords, refetch: refetchRecords } = useQuery({
         queryKey: ["grab-records"],
         queryFn: grabService.getRecords,
+        // Global default staleTime is 60s — grab list must reflect admin actions quickly
+        staleTime: 0,
+        refetchOnWindowFocus: true,
     });
 
     return {
