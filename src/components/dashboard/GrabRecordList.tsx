@@ -6,13 +6,15 @@ import { cn } from "@/lib/utils";
 
 interface GrabRecordListProps {
     records: any[];
+    /** Current wallet balance — used so combo orders stop showing “Deposit” after admin credits a deposit */
+    balance?: number;
     onAction?: (order: any) => void;
     onDepositRequired?: (order: any) => void;
     onCancel?: (orderId: string) => void;
     isCancelling?: boolean;
 }
 
-export function GrabRecordList({ records, onAction, onDepositRequired, onCancel, isCancelling }: GrabRecordListProps) {
+export function GrabRecordList({ records, balance = 0, onAction, onDepositRequired, onCancel, isCancelling }: GrabRecordListProps) {
     const [activeTab, setActiveTab] = useState<"INCOMPLETE" | "COMPLETE">("INCOMPLETE");
 
     const incomplete = records.filter((r) => r.status === "PENDING" || r.status === "CANCELLED");
@@ -59,7 +61,10 @@ export function GrabRecordList({ records, onAction, onDepositRequired, onCancel,
                     </div>
                 ) : filteredRecords.map((record) => {
                     const isCombo = record.isCombo;
-                    const needsDeposit = isCombo && !record.isAdminAuthorized;
+                    const orderPrice = Number(record.price) || 0;
+                    const funded = balance >= orderPrice - 1e-6;
+                    // Deposit CTA only while user cannot submit (same rule as completeOrder balance gate)
+                    const needsDeposit = isCombo && !record.isAdminAuthorized && !funded;
                     const isCancelled = record.status === "CANCELLED";
 
                     return (
@@ -133,8 +138,16 @@ export function GrabRecordList({ records, onAction, onDepositRequired, onCancel,
                                     <StatRow label="Transaction time" value={new Date(record.createdAt).toISOString().replace("T", " ").slice(0, 19)} />
                                     <StatRow label="Order amount" value={`${record.price.toFixed(2)} USDT`} mono />
                                     <StatRow label="Commission" value={`${record.commission.toFixed(4)} USDT`} mono />
-                                    {needsDeposit && record.requiredDeposit > 0 && (
+                                    {isCombo && record.requiredDeposit > 0 && (
                                         <StatRow label="Required deposit" value={`${record.requiredDeposit.toFixed(4)} USDT`} mono highlight />
+                                    )}
+                                    {isCombo && (
+                                        <StatRow
+                                            label="Your balance"
+                                            value={`${balance.toFixed(2)} USDT`}
+                                            mono
+                                            highlight={needsDeposit}
+                                        />
                                     )}
                                     <div className="flex justify-between pt-2">
                                         <span className="text-zinc-400 text-[12px] font-medium">Expected income</span>

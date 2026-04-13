@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { transactionService } from "@/lib/services/transaction.service";
 
 export function useTrading() {
@@ -44,9 +45,9 @@ export function useTrading() {
         loading: userQuery.isLoading || transactionsQuery.isLoading,
         isProcessing: transactionMutation.isPending,
         createTransaction: transactionMutation.mutateAsync,
-        refresh: () => {
-            userQuery.refetch();
-            transactionsQuery.refetch();
-        }
+        refresh: useCallback(() => {
+            void queryClient.invalidateQueries({ queryKey: ["user-me"] });
+            void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+        }, [queryClient]),
     };
 }

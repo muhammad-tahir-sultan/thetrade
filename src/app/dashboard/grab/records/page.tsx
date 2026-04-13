@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Info, ArrowLeft, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useGrabOrder } from "@/hooks/useGrabOrder";
@@ -11,7 +11,7 @@ import { DepositModal } from "@/components/dashboard/DepositModal";
 
 export default function GrabRecordsPage() {
     const { records, isLoadingRecords, refetchRecords, completeOrder, isCompleting, cancelOrder, isCancelling } = useGrabOrder();
-    const { createTransaction, isProcessing } = useTrading();
+    const { balance, createTransaction, isProcessing, refresh } = useTrading();
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
     const [orderError, setOrderError] = useState<string | null>(null);
     const [depositOrder, setDepositOrder] = useState<any>(null);
@@ -20,7 +20,18 @@ export default function GrabRecordsPage() {
     const handleDepositForOrder = async (amount: number, depositAddress: string) => {
         await createTransaction({ type: "DEPOSIT", amount, depositAddress });
         setDepositOrder(null);
+        await refresh();
     };
+
+    useEffect(() => {
+        const onVis = () => {
+            if (document.visibilityState !== "visible") return;
+            void refetchRecords();
+            void refresh();
+        };
+        document.addEventListener("visibilitychange", onVis);
+        return () => document.removeEventListener("visibilitychange", onVis);
+    }, [refetchRecords, refresh]);
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-lg mx-auto pb-24 px-4 overflow-x-hidden">
@@ -36,7 +47,7 @@ export default function GrabRecordsPage() {
                     <p className="text-secondary text-xs font-medium">Your recent earning history</p>
                 </div>
                 <button
-                    onClick={() => refetchRecords()}
+                    onClick={() => { void refetchRecords(); void refresh(); }}
                     disabled={isLoadingRecords}
                     className="p-3 bg-primary/10 hover:bg-primary/20 rounded-full text-primary transition-all disabled:opacity-50 cursor-pointer"
                 >
@@ -63,6 +74,7 @@ export default function GrabRecordsPage() {
                 ) : (
                     <GrabRecordList
                         records={records}
+                        balance={balance}
                         onAction={(order) => setSelectedOrder(order)}
                         onDepositRequired={(order) => setDepositOrder(order)}
                         onCancel={async (orderId) => { await cancelOrder(orderId); }}
