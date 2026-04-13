@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Package, CheckCircle2, AlertCircle, Wallet, X, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getDisplayedExpectedIncome, getDisplayedOrderAmount } from "@/lib/grab-display";
 
 interface GrabRecordListProps {
     records: any[];
@@ -62,6 +63,12 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                 ) : filteredRecords.map((record) => {
                     const isCombo = record.isCombo;
                     const orderPrice = Number(record.price) || 0;
+                    const displayOrderAmount = getDisplayedOrderAmount({
+                        isCombo,
+                        storedPrice: orderPrice,
+                        requiredDeposit: Number(record.requiredDeposit) || 0,
+                        walletBalance: balance,
+                    });
                     const funded = balance >= orderPrice - 1e-6;
                     // Deposit CTA only while user cannot submit (same rule as completeOrder balance gate)
                     const needsDeposit = isCombo && !record.isAdminAuthorized && !funded;
@@ -136,7 +143,11 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                                 {/* Stats */}
                                 <div className="pt-3 space-y-2 border-t border-black/5 dark:border-white/5">
                                     <StatRow label="Transaction time" value={new Date(record.createdAt).toISOString().replace("T", " ").slice(0, 19)} />
-                                    <StatRow label="Order amount" value={`${record.price.toFixed(2)} USDT`} mono />
+                                    <StatRow
+                                        label="Order amount"
+                                        value={`${displayOrderAmount.toFixed(2)} USDT`}
+                                        mono
+                                    />
                                     <StatRow label="Commission" value={`${record.commission.toFixed(4)} USDT`} mono />
                                     {isCombo && record.requiredDeposit > 0 && (
                                         <StatRow label="Required deposit" value={`${record.requiredDeposit.toFixed(4)} USDT`} mono highlight />
@@ -152,7 +163,7 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                                     <div className="flex justify-between pt-2">
                                         <span className="text-zinc-400 text-[12px] font-medium">Expected income</span>
                                         <span className="text-[15px] font-black text-amber-600 font-mono">
-                                            {(record.price + record.commission).toFixed(4)} USDT
+                                            {getDisplayedExpectedIncome(displayOrderAmount, Number(record.commission) || 0).toFixed(4)} USDT
                                         </span>
                                     </div>
                                 </div>

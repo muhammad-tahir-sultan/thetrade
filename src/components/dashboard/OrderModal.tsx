@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Package, X, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getDisplayedExpectedIncome, getDisplayedOrderAmount } from "@/lib/grab-display";
 import { DepositModal } from "./DepositModal";
 
 interface OrderModalProps {
@@ -15,15 +16,26 @@ interface OrderModalProps {
     error?: string | null;
     onDepositSubmit?: (amount: number, depositAddress: string) => Promise<void>;
     isDepositPending?: boolean;
+    /** Wallet balance — combo orders show order amount as requiredDeposit + balance */
+    balance?: number;
 }
 
 export function OrderModal({
     order, isOpen, onClose, onComplete, isProcessing,
     onContactCS, error, onDepositSubmit, isDepositPending,
+    balance = 0,
 }: OrderModalProps) {
     const [showDepositModal, setShowDepositModal] = useState(false);
 
     if (!isOpen || !order) return null;
+
+    const displayOrderAmount = getDisplayedOrderAmount({
+        isCombo: !!order.isCombo,
+        storedPrice: Number(order.price) || 0,
+        requiredDeposit: Number(order.requiredDeposit) || 0,
+        walletBalance: balance,
+    });
+    const displayExpectedIncome = getDisplayedExpectedIncome(displayOrderAmount, Number(order.commission) || 0);
 
     const items = order.items ?? [];
     const isInsufficientBalance = error?.toLowerCase().includes("balance");
@@ -80,7 +92,7 @@ export function OrderModal({
                             </div>
                             <div className="flex justify-between items-center text-xs sm:text-sm">
                                 <span className="text-zinc-400 font-medium">Order amount</span>
-                                <span className="text-zinc-800 dark:text-zinc-200 font-bold">{order.price.toFixed(2)} USDT</span>
+                                <span className="text-zinc-800 dark:text-zinc-200 font-bold">{displayOrderAmount.toFixed(2)} USDT</span>
                             </div>
                             <div className="flex justify-between items-center text-xs sm:text-sm">
                                 <span className="text-zinc-400 font-medium">Commissions</span>
@@ -89,7 +101,7 @@ export function OrderModal({
                             <div className="flex justify-between items-center pt-3 mt-1 border-t border-black/5">
                                 <span className="text-zinc-400 font-bold text-sm">Expected income</span>
                                 <span className="text-xl font-black text-amber-600">
-                                    {(order.price + order.commission).toFixed(4)} USDT
+                                    {displayExpectedIncome.toFixed(4)} USDT
                                 </span>
                             </div>
                         </div>

@@ -86,6 +86,7 @@ export default function GrabRecordsPage() {
             {/* Standard order modal for PENDING orders */}
             <OrderModal
                 order={selectedOrder}
+                balance={balance}
                 isOpen={!!selectedOrder}
                 onClose={() => {
                     setSelectedOrder(null);

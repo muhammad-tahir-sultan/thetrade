@@ -133,6 +133,7 @@ export default function GrabPage() {
 
             <OrderModal
                 order={currentOrder}
+                balance={balance}
                 isOpen={showModal}
                 onClose={() => { setShowModal(false); setOrderError(null); }}
                 isProcessing={isCompleting}
