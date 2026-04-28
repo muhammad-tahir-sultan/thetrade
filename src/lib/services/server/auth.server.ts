@@ -1,25 +1,88 @@
 import User from "@/lib/models/User";
 import dbConnect from "@/lib/mongodb";
 import bcrypt from "bcryptjs";
+import { DEFAULT_ADMIN_INVITATION_CODE, generateUniqueInviteCode } from "@/lib/invitation";
 
 export const authServerService = {
+    async ensureAdminInvitationCode() {
+        const admin = await User.findOne({ role: "ADMIN" }).sort({ createdAt: 1 });
+        if (!admin) return null;
+
+        if (admin.invitationCode) {
+            return admin;
+        }
+
+        const inviteCode = await generateUniqueInviteCode(
+            async (code) => !!(await User.exists({ invitationCode: code })),
+            DEFAULT_ADMIN_INVITATION_CODE
+        );
+
+        admin.invitationCode = inviteCode;
+        await admin.save();
+        return admin;
+    },
+
     async registerUser(data: any) {
         const { name, email, password } = data;
+        const invitationCode = String(data.invitationCode || "").trim().toUpperCase();
 
         await dbConnect();
+
+        const userCount = await User.countDocuments();
+        const existingAdmin = await this.ensureAdminInvitationCode();
 
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             throw new Error("User already exists");
         }
 
+        if (userCount === 0) {
+            const hashedPassword = await bcrypt.hash(password, 12);
+            const adminCode = await generateUniqueInviteCode(
+                async (code) => !!(await User.exists({ invitationCode: code })),
+                DEFAULT_ADMIN_INVITATION_CODE
+            );
+
+            const firstAdmin = await User.create({
+                name,
+                email,
+                password: hashedPassword,
+                role: "ADMIN",
+                invitationCode: adminCode,
+            });
+
+            return { id: firstAdmin._id, role: "ADMIN", invitationCode: adminCode };
+        }
+
+        if (!invitationCode) {
+            throw new Error("Invitation code is required");
+        }
+
+        const inviter = await User.findOne({ invitationCode });
+        if (!inviter) {
+            throw new Error("Invalid invitation code");
+        }
+
         const hashedPassword = await bcrypt.hash(password, 12);
+        const newUserInvitationCode = await generateUniqueInviteCode(
+            async (code) => !!(await User.exists({ invitationCode: code }))
+        );
+
         const newUser = await User.create({
             name,
             email,
             password: hashedPassword,
+            invitationCode: newUserInvitationCode,
+            invitedByCode: invitationCode,
+            invitedBy: inviter._id,
         });
 
-        return { id: newUser._id };
+        await User.findByIdAndUpdate(inviter._id, { $inc: { totalInvites: 1 } });
+        // Keep a deterministic admin invite code available for all future signups.
+        if (!existingAdmin) {
+            await this.ensureAdminInvitationCode();
+        }
+
+        return { id: newUser._id, invitationCode: newUserInvitationCode };
     },
 };

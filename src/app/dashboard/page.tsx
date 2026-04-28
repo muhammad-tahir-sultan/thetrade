@@ -14,7 +14,7 @@ const QUICK_ACTIONS = [
     { label: "Teams", icon: Users, bg: "bg-amber-500", href: null },
     { label: "Record", icon: ClipboardList, bg: "bg-emerald-500", href: "/dashboard/grab/records" },
     { label: "Wallet", icon: TrendingUp, bg: "bg-rose-500", href: "/dashboard/history" },
-    { label: "Invite", icon: Mail, bg: "bg-teal-500", href: null },
+    { label: "Invite", icon: Mail, bg: "bg-teal-500", href: "/dashboard/invite" },
 ];
 
 function WithdrawModal({ isOpen, onClose, balance, dailyTasksCompleted, maxDailyTasks, onWithdraw, isPending }: {
@@ -98,7 +98,6 @@ export default function MinePage() {
     const [showDeposit, setShowDeposit] = useState(false);
     const [showWithdraw, setShowWithdraw] = useState(false);
 
-    const userId = (user as any)?._id ?? (session?.user as any)?.id ?? "000000";
     const name = session?.user?.name ?? "User";
 
     const menuItems = [
@@ -116,7 +115,7 @@ export default function MinePage() {
             <ProfileHeader
                 name={name}
                 balance={balance}
-                userId={String(userId)}
+                invitationCode={(user as any)?.invitationCode}
                 onDeposit={() => setShowDeposit(true)}
                 onWithdraw={() => setShowWithdraw(true)}
             />

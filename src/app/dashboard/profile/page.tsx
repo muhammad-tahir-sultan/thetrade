@@ -34,8 +34,7 @@ export default function ProfilePage() {
     const [isSavingPwd, setIsSavingPwd] = useState(false);
 
     const initials = (session?.user?.name ?? "U").slice(0, 2).toUpperCase();
-    const userId = (user as any)?._id ?? (session?.user as any)?.id ?? "";
-    const inviteCode = userId ? String(userId).slice(-6).toUpperCase() : "------";
+    const inviteCode = (user as any)?.invitationCode || "------";
     const memberSince = (user as any)?.createdAt
         ? new Date((user as any).createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
         : "—";

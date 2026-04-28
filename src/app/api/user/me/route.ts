@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
 import bcrypt from "bcryptjs";
+import { generateUniqueInviteCode } from "@/lib/invitation";
 
 export async function GET() {
     try {
@@ -17,6 +18,15 @@ export async function GET() {
         let user = await User.findById(userId).select("-password");
 
         if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+        // Ensure legacy accounts have invitation codes so they can invite others.
+        if (!user.invitationCode) {
+            const inviteCode = await generateUniqueInviteCode(
+                async (code) => !!(await User.exists({ invitationCode: code }))
+            );
+            await User.findByIdAndUpdate(userId, { $set: { invitationCode: inviteCode } });
+            user = await User.findById(userId).select("-password");
+        }
 
         // BRUTE FORCE: If fields are missing in the object, update the DB directly
         const needsInitialization = 

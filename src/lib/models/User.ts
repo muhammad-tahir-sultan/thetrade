@@ -21,6 +21,10 @@ const UserSchema = new Schema({
         grabIndex: { type: Number }, // 1 to 25
         requiredDeposit: { type: Number, default: 0 }
     }],
+    invitationCode: { type: String, unique: true, sparse: true, uppercase: true, trim: true },
+    invitedByCode: { type: String, uppercase: true, trim: true },
+    invitedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    totalInvites: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now },
 });
 

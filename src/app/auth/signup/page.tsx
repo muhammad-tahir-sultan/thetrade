@@ -12,6 +12,7 @@ export default function SignupPage() {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [invitationCode, setInvitationCode] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -23,7 +24,7 @@ export default function SignupPage() {
         setError("");
 
         try {
-            await authService.signup({ name, email, password });
+            await authService.signup({ name, email, password, invitationCode: invitationCode.trim().toUpperCase() });
             toast.success("Account created successfully!");
             router.push("/auth/login");
         } catch (err: any) {
@@ -59,6 +60,18 @@ export default function SignupPage() {
                         placeholder="name@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-semibold ml-1">Invitation Code</label>
+                    <input
+                        type="text"
+                        required
+                        className="w-full px-6 py-4 bg-secondary/5 border border-secondary/10 rounded-2xl focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all outline-none uppercase"
+                        placeholder="Enter invitation code"
+                        value={invitationCode}
+                        onChange={(e) => setInvitationCode(e.target.value)}
                     />
                 </div>
 

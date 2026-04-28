@@ -1,10 +1,16 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { adminService } from "@/lib/services/admin.service";
 
 export function useAdmin() {
     const queryClient = useQueryClient();
+    const [invitationSearch, setInvitationSearch] = useState("");
+    const [invitationRoleFilter, setInvitationRoleFilter] = useState<"ALL" | "ADMIN" | "USER">("ALL");
+    const [selectedInviterId, setSelectedInviterId] = useState("");
+    const [historySearch, setHistorySearch] = useState("");
+    const [historyTypeFilter, setHistoryTypeFilter] = useState<"ALL" | "DEPOSIT" | "WITHDRAW">("ALL");
 
     const pendingTransactionsQuery = useQuery({
         queryKey: ["admin-pending-transactions"],
@@ -57,14 +63,45 @@ export function useAdmin() {
         },
     });
 
+    const invitationsQuery = useQuery({
+        queryKey: ["admin-invitations", invitationSearch, invitationRoleFilter, selectedInviterId],
+        queryFn: () =>
+            adminService.getInvitationsFiltered({
+                search: invitationSearch || undefined,
+                role: invitationRoleFilter === "ALL" ? undefined : invitationRoleFilter,
+                inviterId: selectedInviterId || undefined,
+            }),
+    });
+
+    const historyQuery = useQuery({
+        queryKey: ["admin-history", historyTypeFilter, historySearch],
+        queryFn: () =>
+            adminService.getAdminHistory({
+                type: historyTypeFilter,
+                search: historySearch || undefined,
+            }),
+    });
+
     return {
         pendingTransactions: pendingTransactionsQuery.data || [],
         csRequests: csRequestsQuery.data || [],
         taskRequests: taskRequestsQuery.data || [],
         depositAddresses: depositAddressesQuery.data || [],
+        invitations: invitationsQuery.data || [],
+        adminHistory: historyQuery.data || [],
+        invitationSearch,
+        invitationRoleFilter,
+        selectedInviterId,
+        historySearch,
+        historyTypeFilter,
+        setInvitationSearch,
+        setInvitationRoleFilter,
+        setSelectedInviterId,
+        setHistorySearch,
+        setHistoryTypeFilter,
         isLoadingAddresses: depositAddressesQuery.isLoading,
-        isLoading: pendingTransactionsQuery.isLoading || csRequestsQuery.isLoading || taskRequestsQuery.isLoading,
-        error: taskRequestsQuery.error || csRequestsQuery.error || pendingTransactionsQuery.error,
+        isLoading: pendingTransactionsQuery.isLoading || csRequestsQuery.isLoading || taskRequestsQuery.isLoading || invitationsQuery.isLoading || historyQuery.isLoading,
+        error: taskRequestsQuery.error || csRequestsQuery.error || pendingTransactionsQuery.error || invitationsQuery.error || historyQuery.error,
         isUpdating: updateStatusMutation.isPending || updateCSMutation.isPending || approveTasksMutation.isPending,
         updateStatus: updateStatusMutation.mutateAsync,
         updateCSStatus: updateCSMutation.mutateAsync,
@@ -75,6 +112,8 @@ export function useAdmin() {
             csRequestsQuery.refetch();
             taskRequestsQuery.refetch();
             depositAddressesQuery.refetch();
+            invitationsQuery.refetch();
+            historyQuery.refetch();
         },
     };
 }

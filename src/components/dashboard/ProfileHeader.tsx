@@ -6,7 +6,7 @@ import Link from "next/link";
 interface ProfileHeaderProps {
     name: string;
     balance: number;
-    userId: string;
+    invitationCode?: string;
     onDeposit: () => void;
     onWithdraw: () => void;
 }
@@ -18,9 +18,9 @@ function getVipLevel(balance: number): string {
     return "VIP 1";
 }
 
-export function ProfileHeader({ name, balance, userId, onDeposit, onWithdraw }: ProfileHeaderProps) {
+export function ProfileHeader({ name, balance, invitationCode, onDeposit, onWithdraw }: ProfileHeaderProps) {
     const initials = name.slice(0, 2).toUpperCase();
-    const inviteCode = userId.slice(-6).toUpperCase();
+    const inviteCode = invitationCode || "------";
     const vipLevel = getVipLevel(balance);
 
     return (

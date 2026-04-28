@@ -34,5 +34,20 @@ export const adminService = {
     async approveTasks(userId: string, comboConfig: any[]) {
         const response = await apiClient.post("/admin/tasks/approve", { userId, comboConfig });
         return response.data;
-    }
+    },
+
+    async getInvitations() {
+        const response = await apiClient.get("/admin/invitations");
+        return response.data;
+    },
+
+    async getInvitationsFiltered(params?: { search?: string; role?: string; inviterId?: string }) {
+        const response = await apiClient.get("/admin/invitations", { params });
+        return response.data;
+    },
+
+    async getAdminHistory(params?: { type?: string; search?: string }) {
+        const response = await apiClient.get("/admin/history", { params });
+        return response.data;
+    },
 };
