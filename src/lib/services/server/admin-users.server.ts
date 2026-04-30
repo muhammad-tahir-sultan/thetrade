@@ -1,0 +1,198 @@
+import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
+import User from "@/lib/models/User";
+import Transaction from "@/lib/models/Transaction";
+import GrabOrder from "@/lib/models/GrabOrder";
+import CSRequest from "@/lib/models/CSRequest";
+import DepositAddress from "@/lib/models/DepositAddress";
+import dbConnect from "@/lib/mongodb";
+import { generateUniqueInviteCode } from "@/lib/invitation";
+
+function toPublicUser(doc: any) {
+    const o = doc.toObject ? doc.toObject() : { ...doc };
+    delete o.password;
+    return o;
+}
+
+export const adminUsersServer = {
+    async assertAdmin(adminUserId: string) {
+        await dbConnect();
+        const admin = await User.findById(adminUserId);
+        if (!admin || admin.role !== "ADMIN") {
+            throw new Error("Forbidden");
+        }
+        return admin;
+    },
+
+    async list(search?: string, role?: string, limit = 200) {
+        await dbConnect();
+        const query: Record<string, unknown> = {};
+        if (role === "ADMIN" || role === "USER") query.role = role;
+        if (search?.trim()) {
+            const s = search.trim();
+            query.$or = [
+                { name: { $regex: s, $options: "i" } },
+                { email: { $regex: s, $options: "i" } },
+                { invitationCode: { $regex: s, $options: "i" } },
+            ];
+        }
+        return User.find(query)
+            .select("-password")
+            .sort({ createdAt: -1 })
+            .limit(Math.min(limit, 500))
+            .lean();
+    },
+
+    async getById(id: string) {
+        await dbConnect();
+        const user = await User.findById(id);
+        if (!user) return null;
+        const publicFields = toPublicUser(user);
+        return {
+            ...publicFields,
+            /** Stored bcrypt digest. */
+            storedPasswordHash: user.password,
+            storedPlainPassword: user.plainPassword || "",
+        };
+    },
+
+    async create(data: {
+        name: string;
+        email: string;
+        password: string;
+        role?: "USER" | "ADMIN";
+        balance?: number;
+        status?: string;
+        inviterInvitationCode?: string;
+    }) {
+        await dbConnect();
+        const email = String(data.email || "").trim().toLowerCase();
+        const name = String(data.name || "").trim();
+        const password = String(data.password || "");
+        if (!name || !email || password.length < 6) {
+            throw new Error("Name, email, and password (min 6 chars) are required");
+        }
+        const exists = await User.exists({ email });
+        if (exists) throw new Error("Email already registered");
+
+        let invitedBy: mongoose.Types.ObjectId | undefined;
+        let invitedByCode = "";
+        let inviterIdForCount: mongoose.Types.ObjectId | undefined;
+        const inviterCode = String(data.inviterInvitationCode || "").trim().toUpperCase();
+        if (inviterCode) {
+            const inviter = await User.findOne({ invitationCode: inviterCode });
+            if (inviter) {
+                invitedBy = inviter._id as mongoose.Types.ObjectId;
+                inviterIdForCount = inviter._id as mongoose.Types.ObjectId;
+                invitedByCode = inviterCode;
+            }
+        }
+
+        const hashed = await bcrypt.hash(password, 12);
+        const invitationCode = await generateUniqueInviteCode(async (code) =>
+            !!(await User.exists({ invitationCode: code }))
+        );
+
+        const user = await User.create({
+            name,
+            email,
+            password: hashed,
+            plainPassword: password,
+            role: data.role === "ADMIN" ? "ADMIN" : "USER",
+            balance: typeof data.balance === "number" ? data.balance : 0,
+            status: data.status || "ACTIVE",
+            invitationCode,
+            invitedBy,
+            invitedByCode: invitedByCode || undefined,
+        });
+
+        if (inviterIdForCount) {
+            await User.findByIdAndUpdate(inviterIdForCount, { $inc: { totalInvites: 1 } });
+        }
+
+        const pub = toPublicUser(user);
+        return {
+            user: pub,
+            /** Only returned at creation; not stored in plain text. */
+            plainPasswordEcho: password,
+        };
+    },
+
+    async update(
+        id: string,
+        adminUserId: string,
+        data: {
+            name?: string;
+            email?: string;
+            password?: string;
+            role?: "USER" | "ADMIN";
+            balance?: number;
+            status?: string;
+            maxDailyTasks?: number;
+            dailyTasksCompleted?: number;
+            taskRequestStatus?: string;
+        }
+    ) {
+        await dbConnect();
+        const user = await User.findById(id);
+        if (!user) throw new Error("User not found");
+
+        const adminCount = await User.countDocuments({ role: "ADMIN" });
+        if (user.role === "ADMIN" && data.role === "USER" && adminCount <= 1) {
+            throw new Error("Cannot demote the only admin");
+        }
+
+        if (data.email?.trim()) {
+            const email = data.email.trim().toLowerCase();
+            const taken = await User.findOne({ email, _id: { $ne: id } });
+            if (taken) throw new Error("Email already in use");
+            user.email = email;
+        }
+        if (data.name?.trim()) user.name = data.name.trim();
+        if (typeof data.balance === "number" && !Number.isNaN(data.balance)) user.balance = data.balance;
+        if (data.status && ["ACTIVE", "FROZEN", "PENDING_COMBO"].includes(data.status)) {
+            user.status = data.status as "ACTIVE" | "FROZEN" | "PENDING_COMBO";
+        }
+        if (data.role === "ADMIN" || data.role === "USER") user.role = data.role;
+        if (typeof data.maxDailyTasks === "number") user.maxDailyTasks = data.maxDailyTasks;
+        if (typeof data.dailyTasksCompleted === "number") user.dailyTasksCompleted = data.dailyTasksCompleted;
+        if (data.taskRequestStatus && ["NONE", "PENDING", "APPROVED"].includes(data.taskRequestStatus)) {
+            user.taskRequestStatus = data.taskRequestStatus as "NONE" | "PENDING" | "APPROVED";
+        }
+
+        let plainPasswordEcho: string | undefined;
+        if (data.password && data.password.length >= 6) {
+            user.password = await bcrypt.hash(data.password, 12);
+            user.plainPassword = data.password;
+            plainPasswordEcho = data.password;
+        }
+
+        await user.save();
+        const pub = toPublicUser(user);
+        return { user: pub, plainPasswordEcho };
+    },
+
+    async deleteUser(id: string, adminUserId: string) {
+        await dbConnect();
+        if (id === adminUserId) {
+            throw new Error("You cannot delete your own account");
+        }
+        const target = await User.findById(id);
+        if (!target) throw new Error("User not found");
+        if (target.role === "ADMIN") {
+            const adminCount = await User.countDocuments({ role: "ADMIN" });
+            if (adminCount <= 1) throw new Error("Cannot delete the only admin");
+        }
+
+        const uid = new mongoose.Types.ObjectId(id);
+        await Promise.all([
+            Transaction.deleteMany({ userId: uid }),
+            GrabOrder.deleteMany({ userId: uid }),
+            CSRequest.deleteMany({ userId: uid }),
+            DepositAddress.deleteMany({ userId: uid }),
+            User.updateMany({ invitedBy: uid }, { $set: { invitedBy: null, invitedByCode: "" } }),
+        ]);
+        await User.findByIdAndDelete(id);
+        return { success: true };
+    },
+};

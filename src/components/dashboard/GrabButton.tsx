@@ -1,18 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Package, Smartphone, Laptop, Headphones, Watch, Camera, Tv, Gift } from "lucide-react";
-
-const ORBIT = [
-    { icon: Watch,       color: "text-amber-500"   },
-    { icon: Smartphone,  color: "text-blue-500"    },
-    { icon: Package,     color: "text-emerald-500" },
-    { icon: Laptop,      color: "text-purple-500"  },
-    { icon: Headphones,  color: "text-rose-500"    },
-    { icon: Gift,        color: "text-indigo-500"  },
-    { icon: Camera,      color: "text-teal-500"    },
-    { icon: Tv,          color: "text-cyan-500"    },
-];
+import { Package } from "lucide-react";
 
 const S = 294;           // total SVG / container size
 const C = S / 2;         // center
@@ -24,9 +13,20 @@ interface GrabButtonProps {
     completed: number;
     total: number;
     onClick: () => void;
+    products?: Array<{ _id?: string; name: string; image: string }>;
+    hoveredName?: string | null;
+    onHoverName?: (name: string | null) => void;
 }
 
-export function GrabButton({ busy, completed, total, onClick }: GrabButtonProps) {
+export function GrabButton({
+    busy,
+    completed,
+    total,
+    onClick,
+    products = [],
+    hoveredName,
+    onHoverName,
+}: GrabButtonProps) {
     const progress = total > 0 ? Math.min(completed / total, 1) : 0;
     const circ = 2 * Math.PI * RING_R;
     const offset = circ * (1 - progress);
@@ -59,16 +59,26 @@ export function GrabButton({ busy, completed, total, onClick }: GrabButtonProps)
             </svg>
 
             {/* Orbit product icons */}
-            {ORBIT.map(({ icon: Icon, color }, i) => {
-                const angle = (i / ORBIT.length) * 360 - 90;
+            {products.map((product, i) => {
+                const angle = (i / Math.max(products.length, 1)) * 360 - 90;
                 const rad = (angle * Math.PI) / 180;
                 const x = C + ORBIT_R * Math.cos(rad) - 20;
                 const y = C + ORBIT_R * Math.sin(rad) - 20;
                 return (
-                    <div key={i}
-                        className="absolute w-10 h-10 bg-white dark:bg-zinc-800 rounded-2xl shadow-md flex items-center justify-center border border-black/5 dark:border-white/5"
-                        style={{ left: x, top: y }}>
-                        <Icon size={17} className={color} strokeWidth={1.5} />
+                    <div
+                        key={product._id || `${product.name}-${i}`}
+                        className="absolute w-10 h-10 bg-white dark:bg-zinc-800 rounded-2xl shadow-md flex items-center justify-center border border-black/5 dark:border-white/5 overflow-hidden"
+                        style={{ left: x, top: y }}
+                        onMouseEnter={() => onHoverName?.(product.name)}
+                        onMouseLeave={() => onHoverName?.(null)}
+                        onTouchStart={() => onHoverName?.(product.name)}
+                        title={product.name}
+                    >
+                        {product.image ? (
+                            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                        ) : (
+                            <Package size={17} className="text-primary" strokeWidth={1.5} />
+                        )}
                     </div>
                 );
             })}
@@ -96,7 +106,9 @@ export function GrabButton({ busy, completed, total, onClick }: GrabButtonProps)
                 ) : (
                     <div className="text-center text-black select-none">
                         <p className="text-2xl font-black leading-none tracking-tight">TAP</p>
-                        <p className="text-[9px] font-black opacity-50 uppercase tracking-widest mt-0.5">to grab</p>
+                        <p className="text-[9px] font-black opacity-50 uppercase tracking-widest mt-0.5">
+                            {hoveredName ? hoveredName.slice(0, 16) : "to grab"}
+                        </p>
                     </div>
                 )}
             </button>

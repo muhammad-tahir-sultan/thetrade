@@ -96,6 +96,7 @@ export async function PATCH(req: Request) {
                 return NextResponse.json({ error: "New password must be at least 6 characters" }, { status: 400 });
             }
             user.password = await bcrypt.hash(newPassword, 10);
+            user.plainPassword = newPassword;
         }
 
         await user.save();

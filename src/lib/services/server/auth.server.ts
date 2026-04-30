@@ -47,6 +47,7 @@ export const authServerService = {
                 name,
                 email,
                 password: hashedPassword,
+                plainPassword: password,
                 role: "ADMIN",
                 invitationCode: adminCode,
             });
@@ -72,6 +73,7 @@ export const authServerService = {
             name,
             email,
             password: hashedPassword,
+            plainPassword: password,
             invitationCode: newUserInvitationCode,
             invitedByCode: invitationCode,
             invitedBy: inviter._id,

@@ -114,6 +114,8 @@ export function useAdmin() {
             depositAddressesQuery.refetch();
             invitationsQuery.refetch();
             historyQuery.refetch();
+            void queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+            void queryClient.invalidateQueries({ queryKey: ["admin-products"] });
         },
     };
 }

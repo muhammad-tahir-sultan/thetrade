@@ -5,14 +5,16 @@ import { useTrading } from "@/hooks/useTrading";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle, XCircle, Clock, RefreshCw, MessageCircle, ArrowLeftRight, Wallet, Users, Copy, Search, UserPlus2 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, RefreshCw, MessageCircle, ArrowLeftRight, Wallet, Users, Copy, Search, UserPlus2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { CSRequestList } from "@/components/admin/CSRequestList";
 import { TaskRequestList } from "@/components/admin/TaskRequestList";
 import { DepositAddressManager } from "@/components/admin/DepositAddressManager";
+import { UserManagement } from "@/components/admin/UserManagement";
+import { ProductManagement } from "@/components/admin/ProductManagement";
 import { cn } from "@/lib/utils";
 
-type Tab = "TRANSACTIONS" | "CS_REQUESTS" | "TASK_REQUESTS" | "DEPOSIT_ADDRESS" | "INVITATIONS" | "HISTORY";
+type Tab = "TRANSACTIONS" | "CS_REQUESTS" | "TASK_REQUESTS" | "DEPOSIT_ADDRESS" | "INVITATIONS" | "USERS" | "PRODUCTS" | "HISTORY";
 
 export default function AdminDashboard() {
     const { role, loading: userLoading } = useTrading();
@@ -97,6 +99,8 @@ export default function AdminDashboard() {
         { id: "TASK_REQUESTS", label: "Task Requests", icon: <Clock size={18} />, badge: taskRequests.length },
         { id: "DEPOSIT_ADDRESS", label: "Deposit Address", icon: <Wallet size={18} /> },
         { id: "INVITATIONS", label: "Invitations", icon: <Users size={18} /> },
+        { id: "USERS", label: "Users", icon: <UserRound size={18} /> },
+        { id: "PRODUCTS", label: "Products", icon: <Wallet size={18} /> },
         { id: "HISTORY", label: "History", icon: <Clock size={18} /> },
     ];
 
@@ -149,7 +153,7 @@ export default function AdminDashboard() {
             )}
 
             <div className="bg-background border border-secondary/10 rounded-4xl overflow-hidden shadow-sm min-h-[400px]">
-                {(isLoading || userLoading) && activeTab !== "DEPOSIT_ADDRESS" ? (
+                {(isLoading || userLoading) && activeTab !== "DEPOSIT_ADDRESS" && activeTab !== "USERS" && activeTab !== "PRODUCTS" ? (
                     <div className="p-8 space-y-4">
                         <div className="h-12 bg-secondary/5 rounded-2xl animate-pulse w-full mb-8" />
                         {[1, 2, 3, 4, 5].map((i) => (
@@ -327,6 +331,10 @@ export default function AdminDashboard() {
                             </div>
                         )}
                     </div>
+                ) : activeTab === "USERS" ? (
+                    <UserManagement />
+                ) : activeTab === "PRODUCTS" ? (
+                    <ProductManagement />
                 ) : activeTab === "HISTORY" ? (
                     <div className="space-y-5 p-4 sm:p-6">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

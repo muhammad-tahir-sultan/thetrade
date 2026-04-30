@@ -1,5 +1,6 @@
 import User from "@/lib/models/User";
 import GrabOrder from "@/lib/models/GrabOrder";
+import Product from "@/lib/models/Product";
 import dbConnect from "@/lib/mongodb";
 
 // Progressive commission rate: starts at 1%, grows ~4% per order (order 1→25 yields 1%→2.6%)
@@ -8,6 +9,21 @@ function getCommissionRate(orderIndex: number): number {
 }
 
 export const grabServerService = {
+    async getRandomProductData() {
+        const products = await Product.find({ isActive: true }).select("name image").lean();
+        if (!products.length) {
+            return {
+                name: this.getRandomProductName(),
+                image: `https://picsum.photos/seed/${Math.random()}/200`,
+            };
+        }
+        const item = products[Math.floor(Math.random() * products.length)] as any;
+        return {
+            name: item.name || this.getRandomProductName(),
+            image: item.image || `https://picsum.photos/seed/${Math.random()}/200`,
+        };
+    },
+
     async grabNewOrder(userId: string) {
         await dbConnect();
         const user = await User.findById(userId);
@@ -57,7 +73,8 @@ export const grabServerService = {
 
         const price = user.balance * (isCombo ? (comboSetting.multiple || 2.5) : 0.8);
         const finalPrice = Math.max(parseFloat(price.toFixed(2)), 0.01);
-        const productName = this.getRandomProduct();
+        const baseProduct = await this.getRandomProductData();
+        const productName = baseProduct.name;
 
         const items = [];
         if (isCombo) {
@@ -65,9 +82,10 @@ export const grabServerService = {
             let remaining = finalPrice;
             for (let i = 0; i < numItems; i++) {
                 const itemPrice = i === numItems - 1 ? remaining : parseFloat((Math.random() * (remaining / 2)).toFixed(2));
+                const randomProduct = await this.getRandomProductData();
                 items.push({
-                    name: this.getRandomProduct(),
-                    image: `https://picsum.photos/seed/${Math.random()}/200`,
+                    name: randomProduct.name,
+                    image: randomProduct.image,
                     price: itemPrice,
                     quantity: Math.floor(Math.random() * 500) + 1,
                 });
@@ -77,7 +95,7 @@ export const grabServerService = {
         } else {
             items.push({
                 name: productName,
-                image: `https://picsum.photos/seed/${Math.random()}/200`,
+                image: baseProduct.image,
                 price: finalPrice,
                 quantity: 1,
             });
@@ -126,6 +144,11 @@ export const grabServerService = {
         user.dailyCommission = parseFloat((user.dailyCommission + order.commission).toFixed(4));
         user.dailyTasksCompleted += 1;
         user.status = "ACTIVE";
+        if (user.dailyTasksCompleted >= (user.maxDailyTasks || 25)) {
+            // Lock next request until 24h cooldown passes.
+            user.taskRequestStatus = "NONE";
+            user.lastGrabDate = new Date();
+        }
         await user.save();
 
         order.status = "COMPLETED";
@@ -158,7 +181,7 @@ export const grabServerService = {
         return { success: true };
     },
 
-    getRandomProduct() {
+    getRandomProductName() {
         const products = ["Luxury Watch", "iPhone 15 Pro", "Crypto Node", "Designer Bag", "Graphics Card", "Gaming Laptop"];
         return products[Math.floor(Math.random() * products.length)];
     },

@@ -25,4 +25,9 @@ export const grabService = {
         const res = await apiClient.post("/grab/cancel", { orderId });
         return res.data;
     },
+
+    async getSpinnerProducts() {
+        const res = await apiClient.get("/grab/products");
+        return res.data;
+    },
 };
