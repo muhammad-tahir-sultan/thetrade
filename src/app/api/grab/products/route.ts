@@ -22,23 +22,7 @@ export async function GET() {
 
         await dbConnect();
         const products = await Product.find({ isActive: true }).select("name image").lean();
-        if (!products.length) {
-            const fallback = [
-                "Luxury Watch",
-                "Smartphone",
-                "Crypto Package",
-                "High-end Laptop",
-                "Wireless Headphones",
-                "Mystery Box",
-                "DSLR Camera",
-                "Smart TV",
-            ].map((name, i) => ({
-                _id: `fallback-${i}`,
-                name,
-                image: `https://picsum.photos/seed/fallback-${i}/120`,
-            }));
-            return NextResponse.json(fallback);
-        }
+        if (!products.length) return NextResponse.json([]);
 
         const randomized = shuffled(products);
         const minCount = Math.min(8, randomized.length);

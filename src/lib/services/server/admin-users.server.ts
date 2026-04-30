@@ -1,12 +1,17 @@
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import User from "@/lib/models/User";
+import StaffRole from "@/lib/models/StaffRole";
 import Transaction from "@/lib/models/Transaction";
 import GrabOrder from "@/lib/models/GrabOrder";
 import CSRequest from "@/lib/models/CSRequest";
 import DepositAddress from "@/lib/models/DepositAddress";
 import dbConnect from "@/lib/mongodb";
 import { generateUniqueInviteCode } from "@/lib/invitation";
+import {
+    assertAdminPermission,
+    resolveAdminAccessForUserId,
+} from "@/lib/services/server/admin-auth.server";
 
 function toPublicUser(doc: any) {
     const o = doc.toObject ? doc.toObject() : { ...doc };
@@ -14,14 +19,34 @@ function toPublicUser(doc: any) {
     return o;
 }
 
-export const adminUsersServer = {
-    async assertAdmin(adminUserId: string) {
-        await dbConnect();
-        const admin = await User.findById(adminUserId);
-        if (!admin || admin.role !== "ADMIN") {
-            throw new Error("Forbidden");
+async function parseStaffRoleForAdmin(data: {
+    role?: "USER" | "ADMIN";
+    staffRole?: string | null;
+    actorIsSuperAdmin: boolean;
+    requireWhenAdmin: boolean;
+}): Promise<mongoose.Types.ObjectId | null | undefined> {
+    if (data.role !== "ADMIN") return undefined;
+    const raw = data.staffRole;
+    if (raw === undefined && !data.requireWhenAdmin) return undefined;
+    if (raw === null || raw === "") {
+        if (!data.actorIsSuperAdmin) {
+            throw new Error("Only a full administrator can assign unrestricted admin access (no role)");
         }
-        return admin;
+        return null;
+    }
+    if (raw === undefined && data.requireWhenAdmin) {
+        throw new Error("Staff role is required for new admin accounts");
+    }
+    if (raw === undefined) return undefined;
+    const oid = new mongoose.Types.ObjectId(String(raw));
+    const exists = await StaffRole.findById(oid);
+    if (!exists) throw new Error("Invalid staff role");
+    return oid;
+}
+
+export const adminUsersServer = {
+    async assertManageUsers(adminUserId: string) {
+        return assertAdminPermission(adminUserId, "MANAGE_USERS");
     },
 
     async list(search?: string, role?: string, limit = 200) {
@@ -38,6 +63,7 @@ export const adminUsersServer = {
         }
         return User.find(query)
             .select("-password")
+            .populate("staffRole", "name permissions")
             .sort({ createdAt: -1 })
             .limit(Math.min(limit, 500))
             .lean();
@@ -45,7 +71,7 @@ export const adminUsersServer = {
 
     async getById(id: string) {
         await dbConnect();
-        const user = await User.findById(id);
+        const user = await User.findById(id).populate("staffRole", "name permissions description");
         if (!user) return null;
         const publicFields = toPublicUser(user);
         return {
@@ -56,15 +82,23 @@ export const adminUsersServer = {
         };
     },
 
-    async create(data: {
-        name: string;
-        email: string;
-        password: string;
-        role?: "USER" | "ADMIN";
-        balance?: number;
-        status?: string;
-        inviterInvitationCode?: string;
-    }) {
+    async create(
+        actorId: string,
+        data: {
+            name: string;
+            email: string;
+            password: string;
+            role?: "USER" | "ADMIN";
+            staffRole?: string | null;
+            balance?: number;
+            status?: string;
+            inviterInvitationCode?: string;
+        }
+    ) {
+        await assertAdminPermission(actorId, "MANAGE_USERS");
+        const actor = await resolveAdminAccessForUserId(actorId);
+        if (!actor.ok) throw new Error("Forbidden");
+
         await dbConnect();
         const email = String(data.email || "").trim().toLowerCase();
         const name = String(data.name || "").trim();
@@ -74,6 +108,14 @@ export const adminUsersServer = {
         }
         const exists = await User.exists({ email });
         if (exists) throw new Error("Email already registered");
+
+        const isAdmin = data.role === "ADMIN";
+        const staffOid = await parseStaffRoleForAdmin({
+            role: isAdmin ? "ADMIN" : "USER",
+            staffRole: data.staffRole,
+            actorIsSuperAdmin: actor.isSuperAdmin,
+            requireWhenAdmin: isAdmin && !actor.isSuperAdmin,
+        });
 
         let invitedBy: mongoose.Types.ObjectId | undefined;
         let invitedByCode = "";
@@ -98,7 +140,8 @@ export const adminUsersServer = {
             email,
             password: hashed,
             plainPassword: password,
-            role: data.role === "ADMIN" ? "ADMIN" : "USER",
+            role: isAdmin ? "ADMIN" : "USER",
+            staffRole: isAdmin ? (staffOid === undefined ? null : staffOid) : null,
             balance: typeof data.balance === "number" ? data.balance : 0,
             status: data.status || "ACTIVE",
             invitationCode,
@@ -110,10 +153,12 @@ export const adminUsersServer = {
             await User.findByIdAndUpdate(inviterIdForCount, { $inc: { totalInvites: 1 } });
         }
 
-        const pub = toPublicUser(user);
+        const populated = await User.findById(user._id)
+            .select("-password")
+            .populate("staffRole", "name permissions");
+        const pub = populated ? toPublicUser(populated) : toPublicUser(user);
         return {
             user: pub,
-            /** Only returned at creation; not stored in plain text. */
             plainPasswordEcho: password,
         };
     },
@@ -126,6 +171,7 @@ export const adminUsersServer = {
             email?: string;
             password?: string;
             role?: "USER" | "ADMIN";
+            staffRole?: string | null;
             balance?: number;
             status?: string;
             maxDailyTasks?: number;
@@ -133,11 +179,16 @@ export const adminUsersServer = {
             taskRequestStatus?: string;
         }
     ) {
+        await assertAdminPermission(adminUserId, "MANAGE_USERS");
+        const actor = await resolveAdminAccessForUserId(adminUserId);
+        if (!actor.ok) throw new Error("Forbidden");
+
         await dbConnect();
         const user = await User.findById(id);
         if (!user) throw new Error("User not found");
 
         const adminCount = await User.countDocuments({ role: "ADMIN" });
+        const prevRole = user.role;
         if (user.role === "ADMIN" && data.role === "USER" && adminCount <= 1) {
             throw new Error("Cannot demote the only admin");
         }
@@ -153,7 +204,27 @@ export const adminUsersServer = {
         if (data.status && ["ACTIVE", "FROZEN", "PENDING_COMBO"].includes(data.status)) {
             user.status = data.status as "ACTIVE" | "FROZEN" | "PENDING_COMBO";
         }
+
+        const nextRole = data.role === "ADMIN" || data.role === "USER" ? data.role : user.role;
         if (data.role === "ADMIN" || data.role === "USER") user.role = data.role;
+
+        if (nextRole === "USER") {
+            user.staffRole = null;
+        } else if (nextRole === "ADMIN") {
+            if (data.staffRole !== undefined) {
+                const oid = await parseStaffRoleForAdmin({
+                    role: "ADMIN",
+                    staffRole: data.staffRole,
+                    actorIsSuperAdmin: actor.isSuperAdmin,
+                    requireWhenAdmin: false,
+                });
+                if (oid !== undefined) user.staffRole = oid as mongoose.Types.ObjectId | null;
+            } else if (prevRole === "USER" && data.role === "ADMIN") {
+                if (!actor.isSuperAdmin) throw new Error("Staff role is required when promoting to admin");
+                user.staffRole = null;
+            }
+        }
+
         if (typeof data.maxDailyTasks === "number") user.maxDailyTasks = data.maxDailyTasks;
         if (typeof data.dailyTasksCompleted === "number") user.dailyTasksCompleted = data.dailyTasksCompleted;
         if (data.taskRequestStatus && ["NONE", "PENDING", "APPROVED"].includes(data.taskRequestStatus)) {
@@ -168,15 +239,19 @@ export const adminUsersServer = {
         }
 
         await user.save();
-        const pub = toPublicUser(user);
+        const populated = await User.findById(user._id)
+            .select("-password")
+            .populate("staffRole", "name permissions");
+        const pub = populated ? toPublicUser(populated) : toPublicUser(user);
         return { user: pub, plainPasswordEcho };
     },
 
     async deleteUser(id: string, adminUserId: string) {
-        await dbConnect();
+        await assertAdminPermission(adminUserId, "MANAGE_USERS");
         if (id === adminUserId) {
             throw new Error("You cannot delete your own account");
         }
+        await dbConnect();
         const target = await User.findById(id);
         if (!target) throw new Error("User not found");
         if (target.role === "ADMIN") {

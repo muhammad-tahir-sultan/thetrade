@@ -95,4 +95,34 @@ export const adminService = {
         const response = await apiClient.delete(`/admin/products/${id}`);
         return response.data;
     },
+
+    async getPasswordRequests() {
+        const response = await apiClient.get("/admin/password-requests");
+        return response.data;
+    },
+
+    async updatePasswordRequest(id: string, status: "APPROVED" | "REJECTED", adminRemark?: string) {
+        const response = await apiClient.patch("/admin/password-requests", { id, status, adminRemark });
+        return response.data;
+    },
+
+    async getRoles() {
+        const response = await apiClient.get("/admin/roles");
+        return response.data;
+    },
+
+    async createRole(body: { name: string; description?: string; permissions: string[] }) {
+        const response = await apiClient.post("/admin/roles", body);
+        return response.data;
+    },
+
+    async updateRole(id: string, body: { name?: string; description?: string; permissions?: string[] }) {
+        const response = await apiClient.patch(`/admin/roles/${id}`, body);
+        return response.data;
+    },
+
+    async deleteRole(id: string) {
+        const response = await apiClient.delete(`/admin/roles/${id}`);
+        return response.data;
+    },
 };

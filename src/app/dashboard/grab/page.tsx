@@ -148,6 +148,11 @@ export default function GrabPage() {
                         </button>
                     ))}
                 </div>
+                {spinnerProducts.length === 0 && (
+                    <div className="py-4 text-center text-xs text-secondary">
+                        No spinner products configured yet. Ask admin to add products from Admin → Products.
+                    </div>
+                )}
             </div>
 
             {/* Live feed */}

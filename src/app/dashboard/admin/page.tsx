@@ -5,19 +5,20 @@ import { useTrading } from "@/hooks/useTrading";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle, XCircle, Clock, RefreshCw, MessageCircle, ArrowLeftRight, Wallet, Users, Copy, Search, UserPlus2, UserRound } from "lucide-react";
+import { CheckCircle, XCircle, Clock, RefreshCw, MessageCircle, ArrowLeftRight, Wallet, Users, Copy, Search, UserPlus2, UserRound, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { CSRequestList } from "@/components/admin/CSRequestList";
 import { TaskRequestList } from "@/components/admin/TaskRequestList";
 import { DepositAddressManager } from "@/components/admin/DepositAddressManager";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { ProductManagement } from "@/components/admin/ProductManagement";
+import { RoleManagement } from "@/components/admin/RoleManagement";
 import { cn } from "@/lib/utils";
 
-type Tab = "TRANSACTIONS" | "CS_REQUESTS" | "TASK_REQUESTS" | "DEPOSIT_ADDRESS" | "INVITATIONS" | "USERS" | "PRODUCTS" | "HISTORY";
+type Tab = "TRANSACTIONS" | "CS_REQUESTS" | "TASK_REQUESTS" | "DEPOSIT_ADDRESS" | "INVITATIONS" | "USERS" | "PRODUCTS" | "PASSWORD_REQUESTS" | "HISTORY" | "ROLES";
 
 export default function AdminDashboard() {
-    const { role, loading: userLoading } = useTrading();
+    const { role, loading: userLoading, isSuperAdmin, adminPermissions } = useTrading();
     const router = useRouter();
     const {
         pendingTransactions,
@@ -31,6 +32,7 @@ export default function AdminDashboard() {
         selectedInviterId,
         historySearch,
         historyTypeFilter,
+        passwordRequests,
         setInvitationSearch,
         setInvitationRoleFilter,
         setSelectedInviterId,
@@ -42,11 +44,13 @@ export default function AdminDashboard() {
         updateStatus,
         updateCSStatus,
         approveTasks,
+        updatePasswordRequest,
         isUpdating,
         refresh,
         refreshAddresses,
-    } = useAdmin();
+    } = useAdmin({ enabledPermissions: adminPermissions, isSuperAdmin });
     const [activeTab, setActiveTab] = useState<Tab>("TRANSACTIONS");
+    const hasPerm = (id: string) => isSuperAdmin || adminPermissions.includes(id);
 
     useEffect(() => {
         if (!userLoading && role !== "ADMIN") router.push("/dashboard");
@@ -94,15 +98,21 @@ export default function AdminDashboard() {
     };
 
     const tabs: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
-        { id: "TRANSACTIONS", label: "Transactions", icon: <ArrowLeftRight size={18} /> },
-        { id: "CS_REQUESTS", label: "CS Requests", icon: <MessageCircle size={18} />, badge: csRequests.length },
-        { id: "TASK_REQUESTS", label: "Task Requests", icon: <Clock size={18} />, badge: taskRequests.length },
-        { id: "DEPOSIT_ADDRESS", label: "Deposit Address", icon: <Wallet size={18} /> },
-        { id: "INVITATIONS", label: "Invitations", icon: <Users size={18} /> },
-        { id: "USERS", label: "Users", icon: <UserRound size={18} /> },
-        { id: "PRODUCTS", label: "Products", icon: <Wallet size={18} /> },
-        { id: "HISTORY", label: "History", icon: <Clock size={18} /> },
+        ...(hasPerm("MANAGE_TRANSACTIONS") ? [{ id: "TRANSACTIONS" as Tab, label: "Transactions", icon: <ArrowLeftRight size={18} /> }] : []),
+        ...(hasPerm("MANAGE_CS") ? [{ id: "CS_REQUESTS" as Tab, label: "CS Requests", icon: <MessageCircle size={18} />, badge: csRequests.length }] : []),
+        ...(hasPerm("MANAGE_TASK_REQUESTS") ? [{ id: "TASK_REQUESTS" as Tab, label: "Task Requests", icon: <Clock size={18} />, badge: taskRequests.length }] : []),
+        ...(hasPerm("MANAGE_DEPOSIT_ADDRESSES") ? [{ id: "DEPOSIT_ADDRESS" as Tab, label: "Deposit Address", icon: <Wallet size={18} /> }] : []),
+        ...(hasPerm("MANAGE_INVITATIONS") ? [{ id: "INVITATIONS" as Tab, label: "Invitations", icon: <Users size={18} /> }] : []),
+        ...(hasPerm("MANAGE_USERS") ? [{ id: "USERS" as Tab, label: "Users", icon: <UserRound size={18} /> }] : []),
+        ...(hasPerm("MANAGE_PRODUCTS") ? [{ id: "PRODUCTS" as Tab, label: "Products", icon: <Wallet size={18} /> }] : []),
+        ...(hasPerm("MANAGE_PASSWORD_REQUESTS") ? [{ id: "PASSWORD_REQUESTS" as Tab, label: "Password Requests", icon: <UserRound size={18} />, badge: passwordRequests.length }] : []),
+        ...(hasPerm("VIEW_HISTORY") ? [{ id: "HISTORY" as Tab, label: "History", icon: <Clock size={18} /> }] : []),
+        ...(hasPerm("MANAGE_ROLES") ? [{ id: "ROLES" as Tab, label: "Roles", icon: <Shield size={18} /> }] : []),
     ];
+
+    useEffect(() => {
+        if (!tabs.some((t) => t.id === activeTab) && tabs[0]) setActiveTab(tabs[0].id);
+    }, [activeTab, tabs]);
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
@@ -335,6 +345,59 @@ export default function AdminDashboard() {
                     <UserManagement />
                 ) : activeTab === "PRODUCTS" ? (
                     <ProductManagement />
+                ) : activeTab === "PASSWORD_REQUESTS" ? (
+                    <div className="space-y-5 p-4 sm:p-6">
+                        {passwordRequests.length === 0 ? (
+                            <div className="w-full min-h-[320px] p-8 text-center flex flex-col items-center justify-center gap-4 text-secondary">
+                                <UserRound size={48} className="opacity-20 mb-2" />
+                                <p className="font-black text-lg text-white/90">No pending password change requests</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="border-b border-secondary/10 bg-secondary/5">
+                                            <th className="p-4 font-bold text-secondary text-xs uppercase tracking-wider">User</th>
+                                            <th className="p-4 font-bold text-secondary text-xs uppercase tracking-wider">Requested</th>
+                                            <th className="p-4 font-bold text-secondary text-xs uppercase tracking-wider text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {passwordRequests.map((r: any) => (
+                                            <tr key={r._id} className="border-b border-secondary/5 hover:bg-secondary/5 transition-colors">
+                                                <td className="p-4">
+                                                    <div className="font-bold">{r.userId?.name || "Unknown User"}</div>
+                                                    <div className="text-xs text-secondary">{r.userId?.email || "—"}</div>
+                                                </td>
+                                                <td className="p-4 text-xs text-secondary">
+                                                    {new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}<br />
+                                                    {new Date(r.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="flex justify-end gap-2">
+                                                        <button
+                                                            disabled={isUpdating}
+                                                            onClick={() => updatePasswordRequest({ id: r._id, status: "APPROVED" })}
+                                                            className="p-2 bg-green-500/10 text-green-500 rounded-xl cursor-pointer transition-transform active:scale-90"
+                                                        >
+                                                            <CheckCircle size={18} />
+                                                        </button>
+                                                        <button
+                                                            disabled={isUpdating}
+                                                            onClick={() => updatePasswordRequest({ id: r._id, status: "REJECTED" })}
+                                                            className="p-2 bg-red-500/10 text-red-500 rounded-xl cursor-pointer transition-transform active:scale-90"
+                                                        >
+                                                            <XCircle size={18} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
                 ) : activeTab === "HISTORY" ? (
                     <div className="space-y-5 p-4 sm:p-6">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -429,6 +492,8 @@ export default function AdminDashboard() {
                             </div>
                         )}
                     </div>
+                ) : activeTab === "ROLES" ? (
+                    <RoleManagement />
                 ) : (
                     <DepositAddressManager
                         addresses={depositAddresses}

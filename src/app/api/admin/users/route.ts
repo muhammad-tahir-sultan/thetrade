@@ -9,7 +9,7 @@ export async function GET(req: Request) {
         if (!session || !(session.user as any).id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-        await adminUsersServer.assertAdmin((session.user as any).id);
+        await adminUsersServer.assertManageUsers((session.user as any).id);
 
         const { searchParams } = new URL(req.url);
         const search = searchParams.get("search") || "";
@@ -30,19 +30,20 @@ export async function POST(req: Request) {
         if (!session || !(session.user as any).id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-        await adminUsersServer.assertAdmin((session.user as any).id);
+        await adminUsersServer.assertManageUsers((session.user as any).id);
 
         const body = await req.json();
-        const result = await adminUsersServer.create({
+        const created = await adminUsersServer.create((session.user as any).id, {
             name: body.name,
             email: body.email,
             password: body.password,
             role: body.role,
+            staffRole: body.staffRole,
             balance: body.balance,
             status: body.status,
             inviterInvitationCode: body.inviterInvitationCode,
         });
-        return NextResponse.json(result, { status: 201 });
+        return NextResponse.json(created, { status: 201 });
     } catch (e: any) {
         const msg = e.message || "Server error";
         return NextResponse.json(

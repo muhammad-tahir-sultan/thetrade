@@ -1,6 +1,7 @@
 import User from "@/lib/models/User";
 import Transaction from "@/lib/models/Transaction";
 import dbConnect from "@/lib/mongodb";
+import { assertAdminPermission } from "@/lib/services/server/admin-auth.server";
 
 /** After balance is credited, allow combo submit when wallet meets admin-set `requiredDeposit`. */
 async function authorizeComboAfterDeposit(userId: string, balanceAfter: number) {
@@ -88,8 +89,7 @@ export const transactionServerService = {
     async updateTransactionStatus(transactionId: string, status: "COMPLETED" | "REJECTED", adminUserId: string) {
         await dbConnect();
 
-        const admin = await User.findById(adminUserId);
-        if (!admin || admin.role !== "ADMIN") throw new Error("Unauthorized: Only admins can perform this action");
+        await assertAdminPermission(adminUserId, "MANAGE_TRANSACTIONS");
 
         const transaction = await Transaction.findById(transactionId);
         if (!transaction) throw new Error("Transaction not found");

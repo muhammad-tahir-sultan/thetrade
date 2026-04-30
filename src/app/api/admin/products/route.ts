@@ -4,14 +4,14 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
 import Product from "@/lib/models/Product";
+import { assertAdminPermission } from "@/lib/services/server/admin-auth.server";
 
 async function assertAdmin() {
     const session = await getServerSession(authOptions);
     if (!session || !(session.user as any).id) throw new Error("Unauthorized");
+    await assertAdminPermission((session.user as any).id, "MANAGE_PRODUCTS");
     await dbConnect();
-    const admin = await User.findById((session.user as any).id);
-    if (!admin || admin.role !== "ADMIN") throw new Error("Forbidden");
-    return admin;
+    return User.findById((session.user as any).id);
 }
 
 export async function GET(req: Request) {

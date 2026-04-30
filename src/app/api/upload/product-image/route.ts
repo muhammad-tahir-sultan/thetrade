@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { configureCloudinary } from "@/lib/cloudinary";
 import dbConnect from "@/lib/mongodb";
-import User from "@/lib/models/User";
+import { assertAdminPermission } from "@/lib/services/server/admin-auth.server";
 
 export const runtime = "nodejs";
 
@@ -14,11 +14,8 @@ export async function POST(req: Request) {
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+        await assertAdminPermission(userId, "MANAGE_PRODUCTS");
         await dbConnect();
-        const admin = await User.findById(userId);
-        if (!admin || admin.role !== "ADMIN") {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
 
         const formData = await req.formData();
         const file = formData.get("file");

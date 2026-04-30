@@ -4,17 +4,24 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { adminService } from "@/lib/services/admin.service";
 
-export function useAdmin() {
+export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin?: boolean }) {
     const queryClient = useQueryClient();
+    const hasPerm = (id: string) => Boolean(options?.isSuperAdmin || options?.enabledPermissions?.includes(id));
     const [invitationSearch, setInvitationSearch] = useState("");
     const [invitationRoleFilter, setInvitationRoleFilter] = useState<"ALL" | "ADMIN" | "USER">("ALL");
     const [selectedInviterId, setSelectedInviterId] = useState("");
     const [historySearch, setHistorySearch] = useState("");
     const [historyTypeFilter, setHistoryTypeFilter] = useState<"ALL" | "DEPOSIT" | "WITHDRAW">("ALL");
+    const passwordRequestsQuery = useQuery({
+        queryKey: ["admin-password-requests"],
+        queryFn: adminService.getPasswordRequests,
+        enabled: hasPerm("MANAGE_PASSWORD_REQUESTS"),
+    });
 
     const pendingTransactionsQuery = useQuery({
         queryKey: ["admin-pending-transactions"],
         queryFn: adminService.getPendingTransactions,
+        enabled: hasPerm("MANAGE_TRANSACTIONS"),
     });
 
     const updateStatusMutation = useMutation({
@@ -29,6 +36,7 @@ export function useAdmin() {
     const csRequestsQuery = useQuery({
         queryKey: ["admin-cs-requests"],
         queryFn: adminService.getCSRequests,
+        enabled: hasPerm("MANAGE_CS"),
     });
 
     const updateCSMutation = useMutation({
@@ -44,6 +52,7 @@ export function useAdmin() {
     const taskRequestsQuery = useQuery({
         queryKey: ["admin-task-requests"],
         queryFn: adminService.getTaskRequests,
+        enabled: hasPerm("MANAGE_TASK_REQUESTS"),
     });
 
     const approveTasksMutation = useMutation({
@@ -61,6 +70,7 @@ export function useAdmin() {
             if (!res.ok) throw new Error("Failed to load addresses");
             return res.json();
         },
+        enabled: hasPerm("MANAGE_DEPOSIT_ADDRESSES"),
     });
 
     const invitationsQuery = useQuery({
@@ -71,6 +81,7 @@ export function useAdmin() {
                 role: invitationRoleFilter === "ALL" ? undefined : invitationRoleFilter,
                 inviterId: selectedInviterId || undefined,
             }),
+        enabled: hasPerm("MANAGE_INVITATIONS"),
     });
 
     const historyQuery = useQuery({
@@ -80,6 +91,17 @@ export function useAdmin() {
                 type: historyTypeFilter,
                 search: historySearch || undefined,
             }),
+        enabled: hasPerm("VIEW_HISTORY"),
+    });
+
+    const passwordRequestMutation = useMutation({
+        mutationFn: ({ id, status, adminRemark }: { id: string; status: "APPROVED" | "REJECTED"; adminRemark?: string }) =>
+            adminService.updatePasswordRequest(id, status, adminRemark),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-password-requests"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
+        },
     });
 
     return {
@@ -89,6 +111,7 @@ export function useAdmin() {
         depositAddresses: depositAddressesQuery.data || [],
         invitations: invitationsQuery.data || [],
         adminHistory: historyQuery.data || [],
+        passwordRequests: passwordRequestsQuery.data || [],
         invitationSearch,
         invitationRoleFilter,
         selectedInviterId,
@@ -100,12 +123,13 @@ export function useAdmin() {
         setHistorySearch,
         setHistoryTypeFilter,
         isLoadingAddresses: depositAddressesQuery.isLoading,
-        isLoading: pendingTransactionsQuery.isLoading || csRequestsQuery.isLoading || taskRequestsQuery.isLoading || invitationsQuery.isLoading || historyQuery.isLoading,
-        error: taskRequestsQuery.error || csRequestsQuery.error || pendingTransactionsQuery.error || invitationsQuery.error || historyQuery.error,
-        isUpdating: updateStatusMutation.isPending || updateCSMutation.isPending || approveTasksMutation.isPending,
+        isLoading: pendingTransactionsQuery.isLoading || csRequestsQuery.isLoading || taskRequestsQuery.isLoading || invitationsQuery.isLoading || historyQuery.isLoading || passwordRequestsQuery.isLoading,
+        error: taskRequestsQuery.error || csRequestsQuery.error || pendingTransactionsQuery.error || invitationsQuery.error || historyQuery.error || passwordRequestsQuery.error,
+        isUpdating: updateStatusMutation.isPending || updateCSMutation.isPending || approveTasksMutation.isPending || passwordRequestMutation.isPending,
         updateStatus: updateStatusMutation.mutateAsync,
         updateCSStatus: updateCSMutation.mutateAsync,
         approveTasks: approveTasksMutation.mutateAsync,
+        updatePasswordRequest: passwordRequestMutation.mutateAsync,
         refreshAddresses: () => depositAddressesQuery.refetch(),
         refresh: () => {
             pendingTransactionsQuery.refetch();
@@ -114,6 +138,7 @@ export function useAdmin() {
             depositAddressesQuery.refetch();
             invitationsQuery.refetch();
             historyQuery.refetch();
+            passwordRequestsQuery.refetch();
             void queryClient.invalidateQueries({ queryKey: ["admin-users"] });
             void queryClient.invalidateQueries({ queryKey: ["admin-products"] });
         },

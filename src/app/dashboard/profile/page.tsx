@@ -62,7 +62,7 @@ export default function ProfilePage() {
             const res = await fetch("/api/user/me", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ currentPassword: curPwd, newPassword: newPwd }) });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
-            toast.success("Password updated successfully!");
+            toast.success(data.message || "Password change request sent to admin!");
             setCurPwd(""); setNewPwd(""); setConfirmPwd("");
         } catch (e: any) { toast.error(e.message); }
         finally { setIsSavingPwd(false); }

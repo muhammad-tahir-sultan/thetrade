@@ -5,6 +5,12 @@ import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
 import bcrypt from "bcryptjs";
 import { generateUniqueInviteCode } from "@/lib/invitation";
+import { ALL_ADMIN_PERMISSION_IDS } from "@/lib/permissions";
+import {
+    resolveAdminAccessForUserId,
+    adminHasPermission as checkPerm,
+} from "@/lib/services/server/admin-auth.server";
+import PasswordChangeRequest from "@/lib/models/PasswordChangeRequest";
 
 export async function GET() {
     try {
@@ -15,7 +21,7 @@ export async function GET() {
 
         await dbConnect();
         const userId = (session.user as any).id;
-        let user = await User.findById(userId).select("-password");
+        let user = await User.findById(userId).select("-password").populate("staffRole", "name permissions");
 
         if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
@@ -49,12 +55,22 @@ export async function GET() {
             }, { new: true });
             
             // Refetch fresh document
-            user = await User.findById(userId).select("-password");
+            user = await User.findById(userId).select("-password").populate("staffRole", "name permissions");
         }
 
+        const access = await resolveAdminAccessForUserId(userId);
+        const isSuperAdmin = access.ok && access.isSuperAdmin;
+        const adminPermissions =
+            access.ok && !access.isSuperAdmin
+                ? ALL_ADMIN_PERMISSION_IDS.filter((id) => checkPerm(access, id))
+                : access.ok
+                  ? [...ALL_ADMIN_PERMISSION_IDS]
+                  : [];
+
         // Return a clean object to ensure all fields are visible to frontend
+        const base = user.toObject();
         return NextResponse.json({
-            ...user.toObject(),
+            ...base,
             dailyTasksCompleted: user.dailyTasksCompleted || 0,
             dailyCommission: user.dailyCommission || 0,
             maxDailyTasks: user.maxDailyTasks || 25,
@@ -62,6 +78,8 @@ export async function GET() {
             status: user.status || "ACTIVE",
             taskRequestStatus: user.taskRequestStatus || "NONE",
             comboConfig: user.comboConfig || [],
+            isSuperAdmin: Boolean(isSuperAdmin),
+            adminPermissions,
         });
     } catch (error) {
         return NextResponse.json({ error: "Server error" }, { status: 500 });
@@ -95,8 +113,30 @@ export async function PATCH(req: Request) {
             if (newPassword.length < 6) {
                 return NextResponse.json({ error: "New password must be at least 6 characters" }, { status: 400 });
             }
-            user.password = await bcrypt.hash(newPassword, 10);
-            user.plainPassword = newPassword;
+
+            const pending = await PasswordChangeRequest.findOne({
+                userId: user._id,
+                status: "PENDING",
+            });
+            if (pending) {
+                return NextResponse.json(
+                    { error: "You already have a pending password change request" },
+                    { status: 400 }
+                );
+            }
+
+            await PasswordChangeRequest.create({
+                userId: user._id,
+                newPassword,
+                status: "PENDING",
+            });
+
+            await user.save();
+            return NextResponse.json({
+                success: true,
+                name: user.name,
+                message: "Password change request submitted to admin",
+            });
         }
 
         await user.save();

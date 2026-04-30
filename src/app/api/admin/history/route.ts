@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import User from "@/lib/models/User";
 import Transaction from "@/lib/models/Transaction";
 import dbConnect from "@/lib/mongodb";
+import { assertAdminPermission } from "@/lib/services/server/admin-auth.server";
 
 type AdminHistoryItem = {
     id: string;
@@ -29,11 +30,8 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        await assertAdminPermission((session.user as any).id, "VIEW_HISTORY");
         await dbConnect();
-        const admin = await User.findById((session.user as any).id);
-        if (!admin || admin.role !== "ADMIN") {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
 
         const { searchParams } = new URL(req.url);
         const typeFilter = (searchParams.get("type") || "ALL").toUpperCase();
@@ -103,6 +101,7 @@ export async function GET(req: Request) {
 
         return NextResponse.json(events);
     } catch (error: any) {
-        return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
+        const msg = error.message || "Server error";
+        return NextResponse.json({ error: msg }, { status: msg === "Forbidden" ? 403 : 500 });
     }
 }

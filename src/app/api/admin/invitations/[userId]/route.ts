@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import User from "@/lib/models/User";
 import dbConnect from "@/lib/mongodb";
+import { assertAdminPermission } from "@/lib/services/server/admin-auth.server";
 
 export async function GET(
     _req: Request,
@@ -14,11 +15,8 @@ export async function GET(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        await assertAdminPermission((session.user as any).id, "MANAGE_INVITATIONS");
         await dbConnect();
-        const admin = await User.findById((session.user as any).id);
-        if (!admin || admin.role !== "ADMIN") {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
 
         const { userId } = await ctx.params;
         const user = await User.findById(userId).select("name email invitationCode role totalInvites");
@@ -33,6 +31,7 @@ export async function GET(
 
         return NextResponse.json({ user, directInvites });
     } catch (error: any) {
-        return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
+        const msg = error.message || "Server error";
+        return NextResponse.json({ error: msg }, { status: msg === "Forbidden" ? 403 : 500 });
     }
 }

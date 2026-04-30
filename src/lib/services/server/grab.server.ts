@@ -12,15 +12,12 @@ export const grabServerService = {
     async getRandomProductData() {
         const products = await Product.find({ isActive: true }).select("name image").lean();
         if (!products.length) {
-            return {
-                name: this.getRandomProductName(),
-                image: `https://picsum.photos/seed/${Math.random()}/200`,
-            };
+            throw new Error("No active products configured. Ask admin to add products.");
         }
         const item = products[Math.floor(Math.random() * products.length)] as any;
         return {
-            name: item.name || this.getRandomProductName(),
-            image: item.image || `https://picsum.photos/seed/${Math.random()}/200`,
+            name: item.name,
+            image: item.image,
         };
     },
 
@@ -181,8 +178,4 @@ export const grabServerService = {
         return { success: true };
     },
 
-    getRandomProductName() {
-        const products = ["Luxury Watch", "iPhone 15 Pro", "Crypto Node", "Designer Bag", "Graphics Card", "Gaming Laptop"];
-        return products[Math.floor(Math.random() * products.length)];
-    },
 };

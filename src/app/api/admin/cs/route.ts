@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
 import CSRequest from "@/lib/models/CSRequest";
+import { assertAdminPermission } from "@/lib/services/server/admin-auth.server";
 
 export async function GET() {
     try {
@@ -11,10 +12,7 @@ export async function GET() {
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         await dbConnect();
-        const user = await User.findById((session.user as any).id);
-        if (!user || user.role !== "ADMIN") {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
+        await assertAdminPermission((session.user as any).id, "MANAGE_CS");
 
         const requests = await CSRequest.find({ status: "OPEN" })
             .populate("userId", "name email balance")
@@ -23,7 +21,8 @@ export async function GET() {
 
         return NextResponse.json(requests);
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const msg = error.message || "Server error";
+        return NextResponse.json({ error: msg }, { status: msg === "Forbidden" ? 403 : 500 });
     }
 }
 
@@ -33,10 +32,7 @@ export async function PATCH(req: Request) {
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         await dbConnect();
-        const user = await User.findById((session.user as any).id);
-        if (!user || user.role !== "ADMIN") {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
+        await assertAdminPermission((session.user as any).id, "MANAGE_CS");
 
         const { id, status, adminRemark } = await req.json();
         const request = await CSRequest.findById(id);
@@ -61,6 +57,7 @@ export async function PATCH(req: Request) {
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const msg = error.message || "Server error";
+        return NextResponse.json({ error: msg }, { status: msg === "Forbidden" ? 403 : 500 });
     }
 }

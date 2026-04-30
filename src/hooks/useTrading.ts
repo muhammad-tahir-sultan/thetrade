@@ -41,6 +41,8 @@ export function useTrading() {
         status: userQuery.data?.status || "ACTIVE",
         taskRequestStatus: userQuery.data?.taskRequestStatus || "NONE",
         role: userQuery.data?.role || "USER",
+        isSuperAdmin: Boolean(userQuery.data?.isSuperAdmin),
+        adminPermissions: (userQuery.data?.adminPermissions || []) as string[],
         transactions: transactionsQuery.data || [],
         loading: userQuery.isLoading || transactionsQuery.isLoading,
         isProcessing: transactionMutation.isPending,

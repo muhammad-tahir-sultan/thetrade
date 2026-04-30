@@ -35,6 +35,10 @@ export function UserManagement() {
                 role: roleFilter || undefined,
             }),
     });
+    const rolesQuery = useQuery({
+        queryKey: ["admin-roles", "for-user-management"],
+        queryFn: adminService.getRoles,
+    });
 
     const detailQuery = useQuery({
         queryKey: ["admin-user", detailId],
@@ -143,6 +147,7 @@ export function UserManagement() {
                             <tr className="border-b border-secondary/10 bg-secondary/5">
                                 <th className="p-3 text-xs font-bold text-secondary uppercase tracking-wider">User</th>
                                 <th className="p-3 text-xs font-bold text-secondary uppercase tracking-wider">Role</th>
+                                <th className="p-3 text-xs font-bold text-secondary uppercase tracking-wider">Permission role</th>
                                 <th className="p-3 text-xs font-bold text-secondary uppercase tracking-wider">Balance</th>
                                 <th className="p-3 text-xs font-bold text-secondary uppercase tracking-wider">Status</th>
                                 <th className="p-3 text-xs font-bold text-secondary uppercase tracking-wider">Invite code</th>
@@ -165,6 +170,21 @@ export function UserManagement() {
                                         >
                                             {u.role}
                                         </span>
+                                    </td>
+                                    <td className="p-3 text-xs">
+                                        {u.role === "ADMIN" ? (
+                                            u.staffRole?.name ? (
+                                                <span className="px-2 py-1 rounded-full bg-violet-500/10 text-violet-500 font-bold">
+                                                    {u.staffRole.name}
+                                                </span>
+                                            ) : (
+                                                <span className="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 font-bold">
+                                                    SUPER ADMIN
+                                                </span>
+                                            )
+                                        ) : (
+                                            <span className="text-secondary">—</span>
+                                        )}
                                     </td>
                                     <td className="p-3 font-mono text-sm">{Number(u.balance || 0).toFixed(4)}</td>
                                     <td className="p-3 text-xs font-bold">{u.status}</td>
@@ -217,11 +237,13 @@ export function UserManagement() {
                             email: values.email,
                             password: values.password,
                             role: values.role,
+                            staffRole: values.role === "ADMIN" ? values.staffRole || null : null,
                             balance: values.balance !== "" ? Number(values.balance) : undefined,
                             status: values.status,
                             inviterInvitationCode: values.inviterInvitationCode || undefined,
                         })
                     }
+                    roles={rolesQuery.data || []}
                 />
             )}
 
@@ -243,6 +265,14 @@ export function UserManagement() {
                                     <DetailRow label="Name" value={detailQuery.data.name} />
                                     <DetailRow label="Email" value={detailQuery.data.email} />
                                     <DetailRow label="Role" value={detailQuery.data.role} />
+                                    <DetailRow
+                                        label="Permission role"
+                                        value={
+                                            detailQuery.data.role === "ADMIN"
+                                                ? detailQuery.data.staffRole?.name || "SUPER ADMIN"
+                                                : "—"
+                                        }
+                                    />
                                     <DetailRow label="Balance" value={Number(detailQuery.data.balance || 0).toFixed(4)} mono />
                                     <DetailRow label="Status" value={detailQuery.data.status} />
                                     <DetailRow label="Invitation code" value={detailQuery.data.invitationCode || "—"} mono />
@@ -329,6 +359,7 @@ export function UserManagement() {
                         email: editQuery.data.email,
                         password: "",
                         role: editQuery.data.role,
+                        staffRole: editQuery.data.staffRole?._id || "",
                         balance: String(editQuery.data.balance ?? 0),
                         status: editQuery.data.status || "ACTIVE",
                         inviterInvitationCode: "",
@@ -342,6 +373,7 @@ export function UserManagement() {
                             name: values.name.trim(),
                             email: values.email.trim(),
                             role: values.role,
+                            staffRole: values.role === "ADMIN" ? values.staffRole || null : null,
                             balance: Number(values.balance),
                             status: values.status,
                             maxDailyTasks: Number(values.maxDailyTasks),
@@ -353,6 +385,7 @@ export function UserManagement() {
                         }
                         updateMutation.mutate({ id: editId, body });
                     }}
+                    roles={rolesQuery.data || []}
                 />
             )}
             {editId && editQuery.isLoading ? (
@@ -405,6 +438,7 @@ type FormValues = {
     email: string;
     password: string;
     role: "USER" | "ADMIN";
+    staffRole: string;
     balance: string;
     status: string;
     inviterInvitationCode: string;
@@ -422,6 +456,7 @@ function UserFormModal({
     onSubmit,
     submitLabel,
     loading,
+    roles,
 }: {
     title: string;
     subtitle: string;
@@ -431,12 +466,14 @@ function UserFormModal({
     onSubmit: (v: FormValues) => void;
     submitLabel: string;
     loading: boolean;
+    roles: any[];
 }) {
     const [values, setValues] = useState<FormValues>({
         name: initial?.name ?? "",
         email: initial?.email ?? "",
         password: initial?.password ?? "",
         role: (initial?.role as any) ?? "USER",
+        staffRole: initial?.staffRole ?? "",
         balance: initial?.balance ?? "0",
         status: initial?.status ?? "ACTIVE",
         inviterInvitationCode: initial?.inviterInvitationCode ?? "",
@@ -496,6 +533,23 @@ function UserFormModal({
                             <option value="ADMIN">Admin</option>
                         </select>
                     </div>
+                    {values.role === "ADMIN" ? (
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-wider text-secondary">Staff role permissions</label>
+                            <select
+                                value={values.staffRole}
+                                onChange={(e) => set("staffRole", e.target.value)}
+                                className="mt-1 w-full px-3 py-2.5 rounded-xl border border-secondary/15 bg-secondary/5 text-sm outline-none focus:border-primary/40"
+                            >
+                                <option value="">No role (full admin)</option>
+                                {roles.map((r: any) => (
+                                    <option key={r._id} value={r._id}>
+                                        {r.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    ) : null}
                     <Field label="Balance (USDT)" value={values.balance} onChange={(v) => set("balance", v)} type="number" step="any" />
                     <div>
                         <label className="text-[10px] font-black uppercase tracking-wider text-secondary">Account status</label>

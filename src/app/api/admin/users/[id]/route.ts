@@ -9,7 +9,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
         if (!session || !(session.user as any).id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-        await adminUsersServer.assertAdmin((session.user as any).id);
+        await adminUsersServer.assertManageUsers((session.user as any).id);
 
         const { id } = await ctx.params;
         const user = await adminUsersServer.getById(id);
@@ -28,7 +28,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
         const adminId = (session.user as any).id;
-        await adminUsersServer.assertAdmin(adminId);
+        await adminUsersServer.assertManageUsers(adminId);
 
         const { id } = await ctx.params;
         const body = await req.json();
@@ -37,6 +37,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
             email: body.email,
             password: body.password,
             role: body.role,
+            staffRole: body.staffRole,
             balance: body.balance,
             status: body.status,
             maxDailyTasks: body.maxDailyTasks,
@@ -60,7 +61,7 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
         const adminId = (session.user as any).id;
-        await adminUsersServer.assertAdmin(adminId);
+        await adminUsersServer.assertManageUsers(adminId);
 
         const { id } = await ctx.params;
         const result = await adminUsersServer.deleteUser(id, adminId);

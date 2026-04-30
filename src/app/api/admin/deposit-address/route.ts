@@ -3,13 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import DepositAddress from "@/lib/models/DepositAddress";
-import User from "@/lib/models/User";
+import { assertAdminPermission } from "@/lib/services/server/admin-auth.server";
 
 async function assertAdmin(session: any) {
     if (!session || !(session.user as any).id) throw new Error("Unauthorized");
+    await assertAdminPermission((session.user as any).id, "MANAGE_DEPOSIT_ADDRESSES");
     await dbConnect();
-    const user = await User.findById((session.user as any).id);
-    if (!user || user.role !== "ADMIN") throw new Error("Forbidden");
 }
 
 // GET  /api/admin/deposit-address  → list all active addresses

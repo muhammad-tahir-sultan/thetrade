@@ -7,6 +7,8 @@ const UserSchema = new Schema({
     plainPassword: { type: String, default: "" },
     balance: { type: Number, default: 0 },
     role: { type: String, enum: ["USER", "ADMIN"], default: "USER" },
+    /** When set on an ADMIN account, restricts actions to StaffRole.permissions. Unset/null = full (super) admin. */
+    staffRole: { type: Schema.Types.ObjectId, ref: "StaffRole", default: null },
     dailyTasksCompleted: { type: Number, default: 0 },
     maxDailyTasks: { type: Number, default: 25 },
     lastGrabDate: { type: Date, default: Date.now },

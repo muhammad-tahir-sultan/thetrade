@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { transactionServerService } from "@/lib/services/server/transaction.server";
+import { assertAdminPermission } from "@/lib/services/server/admin-auth.server";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -17,6 +18,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
         const { id } = await params;
         const adminUserId = (session.user as any).id;
+        await assertAdminPermission(adminUserId, "MANAGE_TRANSACTIONS");
         const transaction = await transactionServerService.updateTransactionStatus(
             id, 
             status as "COMPLETED" | "REJECTED", 
@@ -25,9 +27,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
         return NextResponse.json({ message: "Success", transaction });
     } catch (error: any) {
+        const msg = error.message || "Server error";
         return NextResponse.json(
-            { error: error.message || "Server error" }, 
-            { status: error.message.includes("Unauthorized") ? 403 : 400 }
+            { error: msg }, 
+            { status: msg === "Forbidden" || msg.includes("Unauthorized") ? 403 : 400 }
         );
     }
 }
