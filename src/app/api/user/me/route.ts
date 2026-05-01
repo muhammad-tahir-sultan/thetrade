@@ -11,6 +11,7 @@ import {
     adminHasPermission as checkPerm,
 } from "@/lib/services/server/admin-auth.server";
 import PasswordChangeRequest from "@/lib/models/PasswordChangeRequest";
+import { isSuperAdminEmail } from "@/lib/super-admin";
 
 export async function GET() {
     try {
@@ -31,7 +32,7 @@ export async function GET() {
                 async (code) => !!(await User.exists({ invitationCode: code }))
             );
             await User.findByIdAndUpdate(userId, { $set: { invitationCode: inviteCode } });
-            user = await User.findById(userId).select("-password");
+            user = await User.findById(userId).select("-password").populate("staffRole", "name permissions");
         }
 
         // BRUTE FORCE: If fields are missing in the object, update the DB directly
@@ -55,6 +56,12 @@ export async function GET() {
             }, { new: true });
             
             // Refetch fresh document
+            user = await User.findById(userId).select("-password").populate("staffRole", "name permissions");
+        }
+
+        const emailNorm = String(user.email || "").trim().toLowerCase();
+        if (user.role === "ADMIN" && isSuperAdminEmail(emailNorm) && user.staffRole != null) {
+            await User.findByIdAndUpdate(userId, { $set: { staffRole: null } });
             user = await User.findById(userId).select("-password").populate("staffRole", "name permissions");
         }
 

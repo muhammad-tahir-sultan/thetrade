@@ -1,6 +1,7 @@
 import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
 import { ALL_ADMIN_PERMISSION_IDS } from "@/lib/permissions";
+import { isSuperAdminEmail } from "@/lib/super-admin";
 
 export type ResolvedAdminAccess =
     | { ok: false }
@@ -15,6 +16,16 @@ export async function resolveAdminAccessForUserId(userId: string): Promise<Resol
     await dbConnect();
     const user = await User.findById(userId).populate("staffRole").lean();
     if (!user || user.role !== "ADMIN") return { ok: false };
+
+    const emailNorm = typeof (user as any).email === "string" ? String((user as any).email).trim().toLowerCase() : "";
+    if (emailNorm && isSuperAdminEmail(emailNorm)) {
+        return {
+            ok: true,
+            userId,
+            isSuperAdmin: true,
+            permissionSet: new Set(ALL_ADMIN_PERMISSION_IDS),
+        };
+    }
 
     const sr = user.staffRole as { _id?: unknown; permissions?: string[] } | null | undefined;
     if (!sr) {
