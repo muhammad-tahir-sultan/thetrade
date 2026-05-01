@@ -14,7 +14,11 @@ export const authOptions: NextAuthOptions = {
             },
             async authorize(credentials) {
                 await dbConnect();
-                const user = await User.findOne({ email: credentials?.email });
+                const email = String(credentials?.email || "")
+                    .trim()
+                    .toLowerCase();
+                if (!email) return null;
+                const user = await User.findOne({ email });
 
                 if (user && bcrypt.compareSync(credentials!.password, user.password)) {
                     return { 
@@ -34,6 +38,18 @@ export const authOptions: NextAuthOptions = {
             if (user) {
                 token.id = user.id;
                 token.role = (user as any).role;
+            }
+            /** Keep JWT role aligned with MongoDB (fixes stale ADMIN after DB role changes). */
+            const uid = String((token as any).id || token.sub || "");
+            if (uid.length === 24) {
+                const last = (token as any).roleSyncedAt as number | undefined;
+                const now = Date.now();
+                if (!last || now - last > 60_000) {
+                    await dbConnect();
+                    const doc = await User.findById(uid).select("role").lean();
+                    if (doc?.role) (token as any).role = doc.role;
+                    (token as any).roleSyncedAt = now;
+                }
             }
             return token;
         },

@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
+/** Ensures Mongoose registers StaffRole before populate("staffRole"). */
+import "@/lib/models/StaffRole";
 import bcrypt from "bcryptjs";
 import { generateUniqueInviteCode } from "@/lib/invitation";
 import { ALL_ADMIN_PERMISSION_IDS } from "@/lib/permissions";
@@ -89,7 +91,9 @@ export async function GET() {
             adminPermissions,
         });
     } catch (error) {
-        return NextResponse.json({ error: "Server error" }, { status: 500 });
+        console.error("[GET /api/user/me]", error);
+        const msg = error instanceof Error ? error.message : "Server error";
+        return NextResponse.json({ error: msg }, { status: 500 });
     }
 }
 

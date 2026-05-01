@@ -2,15 +2,20 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { transactionService } from "@/lib/services/transaction.service";
 
 export function useTrading() {
     const queryClient = useQueryClient();
+    const { data: session } = useSession();
 
     // Fetch User Data with caching
     const userQuery = useQuery({
         queryKey: ["user-me"],
         queryFn: transactionService.getCurrentUser,
+        staleTime: 30 * 1000,
+        refetchOnWindowFocus: true,
+        refetchOnMount: true,
     });
 
     // Fetch Transactions with caching
@@ -40,7 +45,11 @@ export function useTrading() {
         totalCommission: userQuery.data?.totalCommission || 0,
         status: userQuery.data?.status || "ACTIVE",
         taskRequestStatus: userQuery.data?.taskRequestStatus || "NONE",
-        role: userQuery.data?.role || "USER",
+        role: (() => {
+            const apiRole = userQuery.data?.role || "USER";
+            const sessionRole = (session?.user as { role?: string } | undefined)?.role;
+            return apiRole === "ADMIN" || sessionRole === "ADMIN" ? "ADMIN" : apiRole;
+        })(),
         isSuperAdmin: Boolean(userQuery.data?.isSuperAdmin),
         adminPermissions: (userQuery.data?.adminPermissions || []) as string[],
         transactions: transactionsQuery.data || [],

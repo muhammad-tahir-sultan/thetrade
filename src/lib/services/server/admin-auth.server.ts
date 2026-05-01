@@ -1,5 +1,7 @@
 import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
+/** Required so populate("staffRole") works when this module loads before admin routes. */
+import "@/lib/models/StaffRole";
 import { ALL_ADMIN_PERMISSION_IDS } from "@/lib/permissions";
 import { isSuperAdminEmail } from "@/lib/super-admin";
 

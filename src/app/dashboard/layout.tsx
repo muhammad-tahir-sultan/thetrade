@@ -142,18 +142,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </main>
 
             {/* Mobile Bottom Nav — 5 tabs matching reference */}
-            <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-xl border-t border-secondary/10 px-2 py-2 z-40 flex items-center justify-around">
+            <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-xl border-t border-secondary/10 px-1 py-2 z-40 flex items-center justify-around gap-0.5 overflow-x-auto scrollbar-hide">
                 {isLoading ? [1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="w-10 h-10 rounded-xl bg-secondary/5 animate-pulse" />
-                )) : MOBILE_NAV.map((item) => {
+                    <div key={i} className="w-10 h-10 rounded-xl bg-secondary/5 animate-pulse shrink-0" />
+                )) : sidebarNav.map((item) => {
                     const isActive = pathname === item.href;
                     return (
                         <Link key={item.href} href={item.href}
-                            className={cn("flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all min-w-[44px]",
+                            className={cn("relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all min-w-[52px] shrink-0 flex-1",
                                 isActive ? "text-primary" : "text-secondary"
                             )}>
                             <item.icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-                            <span className="text-[8px] font-black uppercase tracking-tight text-center leading-tight max-w-[52px]">
+                            <span className="text-[8px] font-black uppercase tracking-tight text-center leading-tight max-w-[56px]">
                                 {item.sublabel ? (
                                     <>
                                         <span className="block">{item.label}</span>
@@ -163,6 +163,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                     item.label
                                 )}
                             </span>
+                            {item.label === "Admin" && adminNotifications.count > 0 && (
+                                <span className="absolute top-1 right-1 min-w-[14px] h-3.5 px-0.5 text-[8px] font-black bg-red-500 text-white rounded-full flex items-center justify-center">
+                                    {adminNotifications.count > 9 ? "9+" : adminNotifications.count}
+                                </span>
+                            )}
                         </Link>
                     );
                 })}
