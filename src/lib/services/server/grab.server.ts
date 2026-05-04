@@ -142,7 +142,6 @@ export const grabServerService = {
         user.dailyTasksCompleted += 1;
         user.status = "ACTIVE";
         if (user.dailyTasksCompleted >= (user.maxDailyTasks || 25)) {
-            // Lock next request until 24h cooldown passes.
             user.taskRequestStatus = "NONE";
             user.lastGrabDate = new Date();
         }

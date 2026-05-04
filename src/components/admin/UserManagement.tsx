@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminService } from "@/lib/services/admin.service";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Plus,
     Pencil,
@@ -36,9 +36,15 @@ export function UserManagement() {
             }),
     });
     const rolesQuery = useQuery({
-        queryKey: ["admin-roles", "for-user-management"],
+        queryKey: ["admin-roles"],
         queryFn: adminService.getRoles,
     });
+
+    useEffect(() => {
+        if (editId || showCreate) {
+            void qc.refetchQueries({ queryKey: ["admin-roles"] });
+        }
+    }, [editId, showCreate, qc]);
 
     const detailQuery = useQuery({
         queryKey: ["admin-user", detailId],
@@ -359,7 +365,10 @@ export function UserManagement() {
                         email: editQuery.data.email,
                         password: "",
                         role: editQuery.data.role,
-                        staffRole: editQuery.data.staffRole?._id || "",
+                        staffRole:
+                            editQuery.data.staffRole?._id != null
+                                ? String(editQuery.data.staffRole._id)
+                                : "",
                         balance: String(editQuery.data.balance ?? 0),
                         status: editQuery.data.status || "ACTIVE",
                         inviterInvitationCode: "",
@@ -543,7 +552,7 @@ function UserFormModal({
                             >
                                 <option value="">No role (full admin)</option>
                                 {roles.map((r: any) => (
-                                    <option key={r._id} value={r._id}>
+                                    <option key={String(r._id)} value={String(r._id)}>
                                         {r.name}
                                     </option>
                                 ))}

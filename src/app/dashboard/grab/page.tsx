@@ -31,15 +31,6 @@ export default function GrabPage() {
     const busy = isSpinning || isGrabbing;
     const maxOrders = Number(maxDailyTasks || 25);
     const completedOrders = Number(dailyTasksCompleted || 0);
-    const lastGrabTime = user?.lastGrabDate ? new Date(user.lastGrabDate).getTime() : 0;
-    const cooldownMs = 24 * 60 * 60 * 1000;
-    const remainingMs = completedOrders >= maxOrders && lastGrabTime > 0
-        ? Math.max(0, cooldownMs - (Date.now() - lastGrabTime))
-        : 0;
-    const isRequestCooldown = taskRequestStatus === "NONE" && completedOrders >= maxOrders && remainingMs > 0;
-    const remainMins = Math.ceil(remainingMs / (60 * 1000));
-    const remainHours = Math.floor(remainMins / 60);
-    const remainMinutes = remainMins % 60;
 
     const handleGrab = async () => {
         if (busy) return;
@@ -97,10 +88,10 @@ export default function GrabPage() {
                     <div>
                         <h3 className="text-lg font-bold mb-1">Daily Tasks</h3>
                         <p className="text-secondary text-sm">
-                            {isRequestCooldown
-                                ? `You've completed ${maxOrders}/${maxOrders}. New request unlocks in ${remainHours}h ${remainMinutes}m.`
-                                : taskRequestStatus === "PENDING"
+                            {taskRequestStatus === "PENDING"
                                 ? "Your request for 25 orders is being reviewed by the admin."
+                                : completedOrders >= maxOrders
+                                ? `You've completed ${maxOrders}/${maxOrders}. Request a new batch whenever you're ready.`
                                 : "Request your daily 25 orders to start earning."}
                         </p>
                     </div>
@@ -113,7 +104,7 @@ export default function GrabPage() {
                                 toast.success("Task request submitted!");
                                 window.location.reload();
                             } catch (e: any) { toast.error(e.message || "Request failed. Try again."); }
-                        }} disabled={isRequestCooldown} className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
+                        }} className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer">
                             Request 25 Orders
                         </button>
                     )}
