@@ -456,6 +456,22 @@ type FormValues = {
     taskRequestStatus: string;
 };
 
+function combinedAccountRoleValue(role: string, staffRole: string) {
+    if (role === "USER") return "USER";
+    if (role === "ADMIN") {
+        if (staffRole) return `ADMIN:${staffRole}`;
+        return "ADMIN";
+    }
+    return "USER";
+}
+
+function parseAccountRoleSelect(raw: string): { role: "USER" | "ADMIN"; staffRole: string } {
+    if (raw === "USER") return { role: "USER", staffRole: "" };
+    if (raw === "ADMIN") return { role: "ADMIN", staffRole: "" };
+    if (raw.startsWith("ADMIN:")) return { role: "ADMIN", staffRole: raw.slice(6) };
+    return { role: "USER", staffRole: "" };
+}
+
 function UserFormModal({
     title,
     subtitle,
@@ -534,31 +550,26 @@ function UserFormModal({
                     <div>
                         <label className="text-[10px] font-black uppercase tracking-wider text-secondary">Role</label>
                         <select
-                            value={values.role}
-                            onChange={(e) => set("role", e.target.value)}
+                            value={combinedAccountRoleValue(values.role, values.staffRole)}
+                            onChange={(e) => {
+                                const parsed = parseAccountRoleSelect(e.target.value);
+                                setValues((p) => ({
+                                    ...p,
+                                    role: parsed.role,
+                                    staffRole: parsed.staffRole,
+                                }));
+                            }}
                             className="mt-1 w-full px-3 py-2.5 rounded-xl border border-secondary/15 bg-secondary/5 text-sm outline-none focus:border-primary/40"
                         >
                             <option value="USER">User</option>
-                            <option value="ADMIN">Admin</option>
+                            <option value="ADMIN">Admin (full access)</option>
+                            {roles.map((r: any) => (
+                                <option key={String(r._id)} value={`ADMIN:${String(r._id)}`}>
+                                    Admin — {r.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
-                    {values.role === "ADMIN" ? (
-                        <div>
-                            <label className="text-[10px] font-black uppercase tracking-wider text-secondary">Staff role permissions</label>
-                            <select
-                                value={values.staffRole}
-                                onChange={(e) => set("staffRole", e.target.value)}
-                                className="mt-1 w-full px-3 py-2.5 rounded-xl border border-secondary/15 bg-secondary/5 text-sm outline-none focus:border-primary/40"
-                            >
-                                <option value="">No role (full admin)</option>
-                                {roles.map((r: any) => (
-                                    <option key={String(r._id)} value={String(r._id)}>
-                                        {r.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    ) : null}
                     <Field label="Balance (USDT)" value={values.balance} onChange={(v) => set("balance", v)} type="number" step="any" />
                     <div>
                         <label className="text-[10px] font-black uppercase tracking-wider text-secondary">Account status</label>
