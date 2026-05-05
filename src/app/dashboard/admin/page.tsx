@@ -2,6 +2,7 @@
 
 import { useAdmin } from "@/hooks/useAdmin";
 import { useTrading } from "@/hooks/useTrading";
+import { adminService } from "@/lib/services/admin.service";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -40,6 +41,7 @@ export default function AdminDashboard() {
         setHistoryTypeFilter,
         isLoadingAddresses,
         isLoading,
+        isRefreshing,
         error,
         updateStatus,
         updateCSStatus,
@@ -50,13 +52,15 @@ export default function AdminDashboard() {
         refreshAddresses,
     } = useAdmin({ enabledPermissions: adminPermissions, isSuperAdmin });
     const [activeTab, setActiveTab] = useState<Tab>("TRANSACTIONS");
+    const [tgUsername, setTgUsername] = useState("");
+    const [loadingSupportContact, setLoadingSupportContact] = useState(false);
+    const [savingSupportContact, setSavingSupportContact] = useState(false);
     const hasPerm = (id: string) => isSuperAdmin || adminPermissions.includes(id);
+    const getErrorMessage = (e: unknown, fallback: string) => (e instanceof Error ? e.message : fallback);
 
     useEffect(() => {
         if (!userLoading && role !== "ADMIN") router.push("/dashboard");
     }, [role, userLoading, router]);
-
-    if (!userLoading && role !== "ADMIN") return null;
 
     const handleAccept = async (id: string) => {
         try {
@@ -114,6 +118,51 @@ export default function AdminDashboard() {
         if (!tabs.some((t) => t.id === activeTab) && tabs[0]) setActiveTab(tabs[0].id);
     }, [activeTab, tabs]);
 
+    useEffect(() => {
+        if (!hasPerm("MANAGE_CS")) return;
+        let alive = true;
+        const run = async () => {
+            setLoadingSupportContact(true);
+            try {
+                const data = await adminService.getSupportContact();
+                if (!alive) return;
+                setTgUsername(String(data?.telegramUsername || ""));
+            } catch (e: unknown) {
+                if (alive) toast.error(getErrorMessage(e, "Failed to load support contact"));
+            } finally {
+                if (alive) setLoadingSupportContact(false);
+            }
+        };
+        void run();
+        return () => {
+            alive = false;
+        };
+    }, [isSuperAdmin, adminPermissions]);
+
+    const handleRefresh = async () => {
+        try {
+            await refresh();
+            toast.success("Dashboard refreshed");
+        } catch (e: unknown) {
+            toast.error(getErrorMessage(e, "Refresh failed"));
+        }
+    };
+
+    const saveTelegramUsername = async () => {
+        setSavingSupportContact(true);
+        try {
+            const data = await adminService.updateSupportContact({ telegramUsername: tgUsername });
+            setTgUsername(String(data?.telegramUsername || ""));
+            toast.success("Support Telegram updated");
+        } catch (e: unknown) {
+            toast.error(getErrorMessage(e, "Failed to save support contact"));
+        } finally {
+            setSavingSupportContact(false);
+        }
+    };
+
+    if (!userLoading && role !== "ADMIN") return null;
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -122,11 +171,11 @@ export default function AdminDashboard() {
                     <p className="text-secondary font-medium">System overview and manual authorization</p>
                 </div>
                 <button
-                    onClick={() => refresh()}
-                    disabled={isLoading}
+                    onClick={() => void handleRefresh()}
+                    disabled={isLoading || isRefreshing}
                     className="flex items-center gap-2 px-6 py-3 bg-secondary/10 hover:bg-secondary/20 rounded-xl font-bold transition-all disabled:opacity-50 cursor-pointer"
                 >
-                    <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} />
+                    <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
                     Refresh
                 </button>
             </div>
@@ -235,7 +284,30 @@ export default function AdminDashboard() {
                         </div>
                     )
                 ) : activeTab === "CS_REQUESTS" ? (
-                    <CSRequestList requests={csRequests} onResolve={handleResolveCS} isUpdating={isUpdating} />
+                    <div className="space-y-5 p-4 sm:p-6">
+                        <div className="p-4 rounded-2xl border border-secondary/10 bg-secondary/5">
+                            <div className="flex flex-col md:flex-row gap-3 md:items-end">
+                                <div className="flex-1">
+                                    <p className="text-[10px] font-black uppercase tracking-wider text-secondary">Customer support Telegram username</p>
+                                    <input
+                                        value={tgUsername}
+                                        onChange={(e) => setTgUsername(e.target.value)}
+                                        placeholder="@your_support_username"
+                                        className="mt-1 w-full px-3 py-2.5 rounded-xl border border-secondary/15 bg-background text-sm outline-none focus:border-primary/40"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => void saveTelegramUsername()}
+                                    disabled={savingSupportContact || loadingSupportContact}
+                                    className="px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold disabled:opacity-50 cursor-pointer"
+                                >
+                                    {savingSupportContact ? "Saving..." : "Save contact"}
+                                </button>
+                            </div>
+                        </div>
+                        <CSRequestList requests={csRequests} onResolve={handleResolveCS} isUpdating={isUpdating} />
+                    </div>
                 ) : activeTab === "TASK_REQUESTS" ? (
                     <TaskRequestList requests={taskRequests} onApprove={handleApproveTasks} isUpdating={isUpdating} />
                 ) : activeTab === "INVITATIONS" ? (

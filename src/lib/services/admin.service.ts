@@ -125,4 +125,14 @@ export const adminService = {
         const response = await apiClient.delete(`/admin/roles/${id}`);
         return response.data;
     },
+
+    async getSupportContact() {
+        const response = await apiClient.get("/admin/support/contact");
+        return response.data;
+    },
+
+    async updateSupportContact(body: { telegramUsername: string }) {
+        const response = await apiClient.patch("/admin/support/contact", body);
+        return response.data;
+    },
 };

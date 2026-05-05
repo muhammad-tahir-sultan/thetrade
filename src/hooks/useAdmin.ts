@@ -104,6 +104,15 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
         },
     });
 
+    const isRefreshing =
+        pendingTransactionsQuery.isFetching ||
+        csRequestsQuery.isFetching ||
+        taskRequestsQuery.isFetching ||
+        invitationsQuery.isFetching ||
+        historyQuery.isFetching ||
+        passwordRequestsQuery.isFetching ||
+        depositAddressesQuery.isFetching;
+
     return {
         pendingTransactions: pendingTransactionsQuery.data || [],
         csRequests: csRequestsQuery.data || [],
@@ -131,16 +140,20 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
         approveTasks: approveTasksMutation.mutateAsync,
         updatePasswordRequest: passwordRequestMutation.mutateAsync,
         refreshAddresses: () => depositAddressesQuery.refetch(),
-        refresh: () => {
-            pendingTransactionsQuery.refetch();
-            csRequestsQuery.refetch();
-            taskRequestsQuery.refetch();
-            depositAddressesQuery.refetch();
-            invitationsQuery.refetch();
-            historyQuery.refetch();
-            passwordRequestsQuery.refetch();
-            void queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-            void queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+        isRefreshing,
+        refresh: async () => {
+            await Promise.all([
+                pendingTransactionsQuery.refetch(),
+                csRequestsQuery.refetch(),
+                taskRequestsQuery.refetch(),
+                depositAddressesQuery.refetch(),
+                invitationsQuery.refetch(),
+                historyQuery.refetch(),
+                passwordRequestsQuery.refetch(),
+                queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+                queryClient.invalidateQueries({ queryKey: ["admin-products"] }),
+                queryClient.invalidateQueries({ queryKey: ["admin-roles"] }),
+            ]);
         },
     };
 }

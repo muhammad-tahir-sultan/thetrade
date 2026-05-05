@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Headphones, MessageCircle, Clock, Shield, ArrowLeft, Upload, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -38,6 +38,22 @@ export default function ServicePage() {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [previewError, setPreviewError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [telegramUsername, setTelegramUsername] = useState("");
+
+    const telegramUrl = telegramUsername ? `https://t.me/${telegramUsername}` : "";
+
+    useEffect(() => {
+        void (async () => {
+            try {
+                const res = await fetch("/api/support/contact");
+                if (!res.ok) return;
+                const json = await res.json();
+                setTelegramUsername(String(json?.telegramUsername || ""));
+            } catch {
+                // Ignore contact fetch errors to avoid blocking service form.
+            }
+        })();
+    }, []);
 
     const onPickFile = (f: File | null) => {
         setFile(f);
@@ -171,6 +187,20 @@ export default function ServicePage() {
                     </div>
                 ))}
             </div>
+
+            {telegramUrl ? (
+                <button
+                    type="button"
+                    onClick={() => {
+                        window.location.href = telegramUrl;
+                    }}
+                    className="fixed bottom-24 right-5 z-50 rounded-full bg-[#229ED9] text-white px-4 py-3 shadow-lg shadow-[#229ED9]/30 hover:opacity-90 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+                    title={`Contact us on Telegram @${telegramUsername}`}
+                >
+                    <MessageCircle size={18} />
+                    <span className="text-sm font-bold">Contact Us</span>
+                </button>
+            ) : null}
         </div>
     );
 }
