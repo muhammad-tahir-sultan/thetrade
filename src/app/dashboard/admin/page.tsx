@@ -53,6 +53,7 @@ export default function AdminDashboard() {
     } = useAdmin({ enabledPermissions: adminPermissions, isSuperAdmin });
     const [activeTab, setActiveTab] = useState<Tab>("TRANSACTIONS");
     const [tgUsername, setTgUsername] = useState("");
+    const [savedTgUsername, setSavedTgUsername] = useState("");
     const [loadingSupportContact, setLoadingSupportContact] = useState(false);
     const [savingSupportContact, setSavingSupportContact] = useState(false);
     const hasPerm = (id: string) => isSuperAdmin || adminPermissions.includes(id);
@@ -126,7 +127,9 @@ export default function AdminDashboard() {
             try {
                 const data = await adminService.getSupportContact();
                 if (!alive) return;
-                setTgUsername(String(data?.telegramUsername || ""));
+                const username = String(data?.telegramUsername || "");
+                setTgUsername(username);
+                setSavedTgUsername(username);
             } catch (e: unknown) {
                 if (alive) toast.error(getErrorMessage(e, "Failed to load support contact"));
             } finally {
@@ -152,10 +155,26 @@ export default function AdminDashboard() {
         setSavingSupportContact(true);
         try {
             const data = await adminService.updateSupportContact({ telegramUsername: tgUsername });
-            setTgUsername(String(data?.telegramUsername || ""));
+            const username = String(data?.telegramUsername || "");
+            setTgUsername(username);
+            setSavedTgUsername(username);
             toast.success("Support Telegram updated");
         } catch (e: unknown) {
             toast.error(getErrorMessage(e, "Failed to save support contact"));
+        } finally {
+            setSavingSupportContact(false);
+        }
+    };
+
+    const deleteTelegramUsername = async () => {
+        setSavingSupportContact(true);
+        try {
+            await adminService.deleteSupportContact();
+            setTgUsername("");
+            setSavedTgUsername("");
+            toast.success("Support Telegram removed");
+        } catch (e: unknown) {
+            toast.error(getErrorMessage(e, "Failed to delete support contact"));
         } finally {
             setSavingSupportContact(false);
         }
@@ -286,6 +305,24 @@ export default function AdminDashboard() {
                 ) : activeTab === "CS_REQUESTS" ? (
                     <div className="space-y-5 p-4 sm:p-6">
                         <div className="p-4 rounded-2xl border border-secondary/10 bg-secondary/5">
+                            <div className="mb-3 rounded-xl border border-secondary/10 bg-background p-3">
+                                <p className="text-[10px] font-black uppercase tracking-wider text-secondary">Current telegram contact</p>
+                                {savedTgUsername ? (
+                                    <div className="mt-1 space-y-1">
+                                        <p className="text-sm font-bold">@{savedTgUsername}</p>
+                                        <a
+                                            href={`https://t.me/${savedTgUsername}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-primary underline underline-offset-2"
+                                        >
+                                            https://t.me/{savedTgUsername}
+                                        </a>
+                                    </div>
+                                ) : (
+                                    <p className="mt-1 text-xs text-secondary">No Telegram username saved yet.</p>
+                                )}
+                            </div>
                             <div className="flex flex-col md:flex-row gap-3 md:items-end">
                                 <div className="flex-1">
                                     <p className="text-[10px] font-black uppercase tracking-wider text-secondary">Customer support Telegram username</p>
@@ -303,6 +340,14 @@ export default function AdminDashboard() {
                                     className="px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold disabled:opacity-50 cursor-pointer"
                                 >
                                     {savingSupportContact ? "Saving..." : "Save contact"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => void deleteTelegramUsername()}
+                                    disabled={savingSupportContact || loadingSupportContact || !savedTgUsername}
+                                    className="px-4 py-2.5 rounded-xl bg-red-500/10 text-red-500 text-sm font-bold disabled:opacity-50 cursor-pointer"
+                                >
+                                    Delete
                                 </button>
                             </div>
                         </div>

@@ -11,7 +11,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 const QUICK_ACTIONS = [
-    { label: "Teams", icon: Users, bg: "bg-amber-500", href: null },
+    { label: "Teams", icon: Users, bg: "bg-amber-500", href: "/dashboard/invite" },
     { label: "Record", icon: ClipboardList, bg: "bg-emerald-500", href: "/dashboard/grab/records" },
     { label: "Wallet", icon: TrendingUp, bg: "bg-rose-500", href: "/dashboard/history" },
     { label: "Invite", icon: Mail, bg: "bg-teal-500", href: "/dashboard/invite" },

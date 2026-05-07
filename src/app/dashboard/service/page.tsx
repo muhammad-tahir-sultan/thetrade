@@ -48,7 +48,14 @@ export default function ServicePage() {
                 const res = await fetch("/api/support/contact");
                 if (!res.ok) return;
                 const json = await res.json();
-                setTelegramUsername(String(json?.telegramUsername || ""));
+                const usernameFromApi = String(json?.telegramUsername || "").trim();
+                const urlFromApi = String(json?.telegramUrl || "").trim();
+                const usernameFromUrl = urlFromApi
+                    .replace(/^https?:\/\/t\.me\//i, "")
+                    .replace(/^@/, "")
+                    .split(/[/?#]/)[0]
+                    .trim();
+                setTelegramUsername(usernameFromApi || usernameFromUrl);
             } catch {
                 // Ignore contact fetch errors to avoid blocking service form.
             }
@@ -189,17 +196,16 @@ export default function ServicePage() {
             </div>
 
             {telegramUrl ? (
-                <button
-                    type="button"
-                    onClick={() => {
-                        window.location.href = telegramUrl;
-                    }}
+                <a
+                    href={telegramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="fixed bottom-24 right-5 z-50 rounded-full bg-[#229ED9] text-white px-4 py-3 shadow-lg shadow-[#229ED9]/30 hover:opacity-90 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
-                    title={`Contact us on Telegram @${telegramUsername}`}
+                    title={`Contact with Customer Support - Telegram (@${telegramUsername})`}
                 >
                     <MessageCircle size={18} />
-                    <span className="text-sm font-bold">Contact Us</span>
-                </button>
+                    <span className="text-sm font-bold">Contact with Customer Support - Telegram</span>
+                </a>
             ) : null}
         </div>
     );

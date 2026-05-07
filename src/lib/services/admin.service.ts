@@ -135,4 +135,9 @@ export const adminService = {
         const response = await apiClient.patch("/admin/support/contact", body);
         return response.data;
     },
+
+    async deleteSupportContact() {
+        const response = await apiClient.delete("/admin/support/contact");
+        return response.data;
+    },
 };

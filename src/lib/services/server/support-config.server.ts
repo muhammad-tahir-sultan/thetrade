@@ -40,4 +40,14 @@ export const supportConfigServer = {
             telegramUrl: username ? `https://t.me/${username}` : "",
         };
     },
+
+    async deleteForAdmin(actorId: string) {
+        await assertAdminPermission(actorId, "MANAGE_CS");
+        await dbConnect();
+        await SupportConfig.deleteOne({ singletonKey: "default" });
+        return {
+            telegramUsername: "",
+            telegramUrl: "",
+        };
+    },
 };

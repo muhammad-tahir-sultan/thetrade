@@ -37,3 +37,18 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ error: msg }, { status: msg === "Forbidden" ? 403 : 500 });
     }
 }
+
+export async function DELETE() {
+    try {
+        const session = await getServerSession(authOptions);
+        const userId = (session?.user as { id?: string } | undefined)?.id;
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const data = await supportConfigServer.deleteForAdmin(userId);
+        return NextResponse.json(data);
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Server error";
+        return NextResponse.json({ error: msg }, { status: msg === "Forbidden" ? 403 : 500 });
+    }
+}
