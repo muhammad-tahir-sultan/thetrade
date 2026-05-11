@@ -13,6 +13,8 @@ import {
     adminHasPermission as checkPerm,
 } from "@/lib/services/server/admin-auth.server";
 import PasswordChangeRequest from "@/lib/models/PasswordChangeRequest";
+import Transaction from "@/lib/models/Transaction";
+import WithdrawWalletRequest from "@/lib/models/WithdrawWalletRequest";
 import { isSuperAdminEmail } from "@/lib/super-admin";
 
 export async function GET() {
@@ -76,6 +78,13 @@ export async function GET() {
                   ? [...ALL_ADMIN_PERMISSION_IDS]
                   : [];
 
+        const hasPendingWithdraw = Boolean(
+            await Transaction.exists({ userId, type: "WITHDRAW", status: "PENDING" })
+        );
+        const hasPendingWithdrawWalletChange = Boolean(
+            await WithdrawWalletRequest.exists({ userId, status: "PENDING" })
+        );
+
         // Return a clean object to ensure all fields are visible to frontend
         const base = user.toObject();
         return NextResponse.json({
@@ -89,6 +98,10 @@ export async function GET() {
             comboConfig: user.comboConfig || [],
             isSuperAdmin: Boolean(isSuperAdmin),
             adminPermissions,
+            hasPendingWithdraw,
+            hasPendingWithdrawWalletChange,
+            savedWithdrawAddress: String((user as { savedWithdrawAddress?: string }).savedWithdrawAddress || "").trim(),
+            savedWithdrawNetwork: String((user as { savedWithdrawNetwork?: string }).savedWithdrawNetwork || "Binance (TRC-20)").trim() || "Binance (TRC-20)",
         });
     } catch (error) {
         console.error("[GET /api/user/me]", error);

@@ -18,6 +18,12 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
         enabled: hasPerm("MANAGE_PASSWORD_REQUESTS"),
     });
 
+    const withdrawWalletRequestsQuery = useQuery({
+        queryKey: ["admin-withdraw-wallet-requests"],
+        queryFn: adminService.getWithdrawWalletRequests,
+        enabled: hasPerm("MANAGE_WITHDRAW_WALLET_REQUESTS"),
+    });
+
     const pendingTransactionsQuery = useQuery({
         queryKey: ["admin-pending-transactions"],
         queryFn: adminService.getPendingTransactions,
@@ -104,6 +110,16 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
         },
     });
 
+    const withdrawWalletRequestMutation = useMutation({
+        mutationFn: ({ id, status, adminRemark }: { id: string; status: "APPROVED" | "REJECTED"; adminRemark?: string }) =>
+            adminService.updateWithdrawWalletRequest(id, status, adminRemark),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-withdraw-wallet-requests"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
+        },
+    });
+
     const isRefreshing =
         pendingTransactionsQuery.isFetching ||
         csRequestsQuery.isFetching ||
@@ -111,6 +127,7 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
         invitationsQuery.isFetching ||
         historyQuery.isFetching ||
         passwordRequestsQuery.isFetching ||
+        withdrawWalletRequestsQuery.isFetching ||
         depositAddressesQuery.isFetching;
 
     return {
@@ -121,6 +138,7 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
         invitations: invitationsQuery.data || [],
         adminHistory: historyQuery.data || [],
         passwordRequests: passwordRequestsQuery.data || [],
+        withdrawWalletRequests: withdrawWalletRequestsQuery.data || [],
         invitationSearch,
         invitationRoleFilter,
         selectedInviterId,
@@ -132,13 +150,33 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
         setHistorySearch,
         setHistoryTypeFilter,
         isLoadingAddresses: depositAddressesQuery.isLoading,
-        isLoading: pendingTransactionsQuery.isLoading || csRequestsQuery.isLoading || taskRequestsQuery.isLoading || invitationsQuery.isLoading || historyQuery.isLoading || passwordRequestsQuery.isLoading,
-        error: taskRequestsQuery.error || csRequestsQuery.error || pendingTransactionsQuery.error || invitationsQuery.error || historyQuery.error || passwordRequestsQuery.error,
-        isUpdating: updateStatusMutation.isPending || updateCSMutation.isPending || approveTasksMutation.isPending || passwordRequestMutation.isPending,
+        isLoading:
+            pendingTransactionsQuery.isLoading ||
+            csRequestsQuery.isLoading ||
+            taskRequestsQuery.isLoading ||
+            invitationsQuery.isLoading ||
+            historyQuery.isLoading ||
+            passwordRequestsQuery.isLoading ||
+            withdrawWalletRequestsQuery.isLoading,
+        error:
+            taskRequestsQuery.error ||
+            csRequestsQuery.error ||
+            pendingTransactionsQuery.error ||
+            invitationsQuery.error ||
+            historyQuery.error ||
+            passwordRequestsQuery.error ||
+            withdrawWalletRequestsQuery.error,
+        isUpdating:
+            updateStatusMutation.isPending ||
+            updateCSMutation.isPending ||
+            approveTasksMutation.isPending ||
+            passwordRequestMutation.isPending ||
+            withdrawWalletRequestMutation.isPending,
         updateStatus: updateStatusMutation.mutateAsync,
         updateCSStatus: updateCSMutation.mutateAsync,
         approveTasks: approveTasksMutation.mutateAsync,
         updatePasswordRequest: passwordRequestMutation.mutateAsync,
+        updateWithdrawWalletRequest: withdrawWalletRequestMutation.mutateAsync,
         refreshAddresses: () => depositAddressesQuery.refetch(),
         isRefreshing,
         refresh: async () => {
@@ -150,6 +188,7 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
                 invitationsQuery.refetch(),
                 historyQuery.refetch(),
                 passwordRequestsQuery.refetch(),
+                withdrawWalletRequestsQuery.refetch(),
                 queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
                 queryClient.invalidateQueries({ queryKey: ["admin-products"] }),
                 queryClient.invalidateQueries({ queryKey: ["admin-roles"] }),

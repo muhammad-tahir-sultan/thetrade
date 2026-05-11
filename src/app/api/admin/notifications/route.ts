@@ -6,6 +6,7 @@ import User from "@/lib/models/User";
 import Transaction from "@/lib/models/Transaction";
 import CSRequest from "@/lib/models/CSRequest";
 import PasswordChangeRequest from "@/lib/models/PasswordChangeRequest";
+import WithdrawWalletRequest from "@/lib/models/WithdrawWalletRequest";
 import {
     resolveAdminAccessForUserId,
     adminHasPermission,
@@ -30,6 +31,7 @@ export async function GET() {
         let csRequests = 0;
         let taskRequests = 0;
         let passwordRequests = 0;
+        let withdrawWalletRequests = 0;
 
         const jobs: Promise<void>[] = [];
         if (adminHasPermission(access, "MANAGE_TRANSACTIONS")) {
@@ -56,15 +58,23 @@ export async function GET() {
                 })
             );
         }
+        if (adminHasPermission(access, "MANAGE_WITHDRAW_WALLET_REQUESTS")) {
+            jobs.push(
+                WithdrawWalletRequest.countDocuments({ status: "PENDING" }).then((n) => {
+                    withdrawWalletRequests = n;
+                })
+            );
+        }
 
         await Promise.all(jobs);
 
         return NextResponse.json({
-            count: transactions + csRequests + taskRequests + passwordRequests,
+            count: transactions + csRequests + taskRequests + passwordRequests + withdrawWalletRequests,
             transactions,
             csRequests,
             taskRequests,
             passwordRequests,
+            withdrawWalletRequests,
         });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });

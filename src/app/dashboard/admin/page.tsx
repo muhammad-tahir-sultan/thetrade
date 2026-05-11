@@ -34,6 +34,7 @@ export default function AdminDashboard() {
         historySearch,
         historyTypeFilter,
         passwordRequests,
+        withdrawWalletRequests,
         setInvitationSearch,
         setInvitationRoleFilter,
         setSelectedInviterId,
@@ -47,6 +48,7 @@ export default function AdminDashboard() {
         updateCSStatus,
         approveTasks,
         updatePasswordRequest,
+        updateWithdrawWalletRequest,
         isUpdating,
         refresh,
         refreshAddresses,
@@ -110,7 +112,16 @@ export default function AdminDashboard() {
         ...(hasPerm("MANAGE_INVITATIONS") ? [{ id: "INVITATIONS" as Tab, label: "Invitations", icon: <Users size={18} /> }] : []),
         ...(hasPerm("MANAGE_USERS") ? [{ id: "USERS" as Tab, label: "Users", icon: <UserRound size={18} /> }] : []),
         ...(hasPerm("MANAGE_PRODUCTS") ? [{ id: "PRODUCTS" as Tab, label: "Products", icon: <Wallet size={18} /> }] : []),
-        ...(hasPerm("MANAGE_PASSWORD_REQUESTS") ? [{ id: "PASSWORD_REQUESTS" as Tab, label: "Password Requests", icon: <UserRound size={18} />, badge: passwordRequests.length }] : []),
+        ...(hasPerm("MANAGE_PASSWORD_REQUESTS") || hasPerm("MANAGE_WITHDRAW_WALLET_REQUESTS")
+            ? [{
+                id: "PASSWORD_REQUESTS" as Tab,
+                label: "Security",
+                icon: <UserRound size={18} />,
+                badge:
+                    (hasPerm("MANAGE_PASSWORD_REQUESTS") ? passwordRequests.length : 0) +
+                    (hasPerm("MANAGE_WITHDRAW_WALLET_REQUESTS") ? withdrawWalletRequests.length : 0),
+            }]
+            : []),
         ...(hasPerm("VIEW_HISTORY") ? [{ id: "HISTORY" as Tab, label: "History", icon: <Clock size={18} /> }] : []),
         ...(hasPerm("MANAGE_ROLES") ? [{ id: "ROLES" as Tab, label: "Roles", icon: <Shield size={18} /> }] : []),
     ];
@@ -463,56 +474,124 @@ export default function AdminDashboard() {
                 ) : activeTab === "PRODUCTS" ? (
                     <ProductManagement />
                 ) : activeTab === "PASSWORD_REQUESTS" ? (
-                    <div className="space-y-5 p-4 sm:p-6">
-                        {passwordRequests.length === 0 ? (
-                            <div className="w-full min-h-[320px] p-8 text-center flex flex-col items-center justify-center gap-4 text-secondary">
-                                <UserRound size={48} className="opacity-20 mb-2" />
-                                <p className="font-black text-lg text-white/90">No pending password change requests</p>
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="border-b border-secondary/10 bg-secondary/5">
-                                            <th className="p-4 font-bold text-secondary text-xs uppercase tracking-wider">User</th>
-                                            <th className="p-4 font-bold text-secondary text-xs uppercase tracking-wider">Requested</th>
-                                            <th className="p-4 font-bold text-secondary text-xs uppercase tracking-wider text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {passwordRequests.map((r: any) => (
-                                            <tr key={r._id} className="border-b border-secondary/5 hover:bg-secondary/5 transition-colors">
-                                                <td className="p-4">
-                                                    <div className="font-bold">{r.userId?.name || "Unknown User"}</div>
-                                                    <div className="text-xs text-secondary">{r.userId?.email || "—"}</div>
-                                                </td>
-                                                <td className="p-4 text-xs text-secondary">
-                                                    {new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}<br />
-                                                    {new Date(r.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                                </td>
-                                                <td className="p-4">
-                                                    <div className="flex justify-end gap-2">
-                                                        <button
-                                                            disabled={isUpdating}
-                                                            onClick={() => updatePasswordRequest({ id: r._id, status: "APPROVED" })}
-                                                            className="p-2 bg-green-500/10 text-green-500 rounded-xl cursor-pointer transition-transform active:scale-90"
-                                                        >
-                                                            <CheckCircle size={18} />
-                                                        </button>
-                                                        <button
-                                                            disabled={isUpdating}
-                                                            onClick={() => updatePasswordRequest({ id: r._id, status: "REJECTED" })}
-                                                            className="p-2 bg-red-500/10 text-red-500 rounded-xl cursor-pointer transition-transform active:scale-90"
-                                                        >
-                                                            <XCircle size={18} />
-                                                        </button>
-                                                    </div>
-                                                </td>
+                    <div className="space-y-8 p-4 sm:p-6">
+                        {hasPerm("MANAGE_PASSWORD_REQUESTS") && (
+                        <div className="space-y-3">
+                            <p className="text-[10px] font-black uppercase tracking-wider text-secondary">Password change requests</p>
+                            {passwordRequests.length === 0 ? (
+                                <div className="w-full min-h-[120px] p-6 text-center flex flex-col items-center justify-center gap-2 text-secondary border border-secondary/10 rounded-2xl">
+                                    <p className="font-bold text-sm text-white/80">No pending password requests</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto rounded-2xl border border-secondary/10">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="border-b border-secondary/10 bg-secondary/5">
+                                                <th className="p-4 font-bold text-secondary text-xs uppercase tracking-wider">User</th>
+                                                <th className="p-4 font-bold text-secondary text-xs uppercase tracking-wider">Requested</th>
+                                                <th className="p-4 font-bold text-secondary text-xs uppercase tracking-wider text-right">Actions</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </thead>
+                                        <tbody>
+                                            {passwordRequests.map((r: any) => (
+                                                <tr key={r._id} className="border-b border-secondary/5 hover:bg-secondary/5 transition-colors">
+                                                    <td className="p-4">
+                                                        <div className="font-bold">{r.userId?.name || "Unknown User"}</div>
+                                                        <div className="text-xs text-secondary">{r.userId?.email || "—"}</div>
+                                                    </td>
+                                                    <td className="p-4 text-xs text-secondary">
+                                                        {new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}<br />
+                                                        {new Date(r.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="flex justify-end gap-2">
+                                                            <button
+                                                                disabled={isUpdating}
+                                                                onClick={() => void updatePasswordRequest({ id: r._id, status: "APPROVED" }).then(() => toast.success("Password updated")).catch((e) => toast.error(String(e)))}
+                                                                className="p-2 bg-green-500/10 text-green-500 rounded-xl cursor-pointer transition-transform active:scale-90"
+                                                            >
+                                                                <CheckCircle size={18} />
+                                                            </button>
+                                                            <button
+                                                                disabled={isUpdating}
+                                                                onClick={() => void updatePasswordRequest({ id: r._id, status: "REJECTED" }).then(() => toast.success("Rejected")).catch((e) => toast.error(String(e)))}
+                                                                className="p-2 bg-red-500/10 text-red-500 rounded-xl cursor-pointer transition-transform active:scale-90"
+                                                            >
+                                                                <XCircle size={18} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                        )}
+
+                        {hasPerm("MANAGE_WITHDRAW_WALLET_REQUESTS") && (
+                        <div className="space-y-3">
+                            <p className="text-[10px] font-black uppercase tracking-wider text-secondary">Withdrawal wallet change requests</p>
+                            {withdrawWalletRequests.length === 0 ? (
+                                <div className="w-full min-h-[120px] p-6 text-center flex flex-col items-center justify-center gap-2 text-secondary border border-secondary/10 rounded-2xl">
+                                    <p className="font-bold text-sm text-white/80">No pending wallet change requests</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto rounded-2xl border border-secondary/10">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="border-b border-secondary/10 bg-secondary/5">
+                                                <th className="p-4 font-bold text-secondary text-xs uppercase tracking-wider">User</th>
+                                                <th className="p-4 font-bold text-secondary text-xs uppercase tracking-wider">Current</th>
+                                                <th className="p-4 font-bold text-secondary text-xs uppercase tracking-wider">New address</th>
+                                                <th className="p-4 font-bold text-secondary text-xs uppercase tracking-wider">Requested</th>
+                                                <th className="p-4 font-bold text-secondary text-xs uppercase tracking-wider text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {withdrawWalletRequests.map((r: any) => (
+                                                <tr key={r._id} className="border-b border-secondary/5 hover:bg-secondary/5 transition-colors align-top">
+                                                    <td className="p-4">
+                                                        <div className="font-bold">{r.userId?.name || "Unknown"}</div>
+                                                        <div className="text-xs text-secondary">{r.userId?.email || "—"}</div>
+                                                    </td>
+                                                    <td className="p-4 text-[10px] font-mono text-secondary max-w-[140px] break-all">
+                                                        {(r.userId as any)?.savedWithdrawAddress || "—"}
+                                                    </td>
+                                                    <td className="p-4 text-[10px] font-mono max-w-[160px] break-all">
+                                                        <div>{r.newAddress}</div>
+                                                        <div className="text-secondary mt-1">{r.newNetwork}</div>
+                                                    </td>
+                                                    <td className="p-4 text-xs text-secondary whitespace-nowrap">
+                                                        {new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}<br />
+                                                        {new Date(r.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="flex justify-end gap-2">
+                                                            <button
+                                                                disabled={isUpdating}
+                                                                onClick={() => void updateWithdrawWalletRequest({ id: r._id, status: "APPROVED" }).then(() => toast.success("Wallet address updated")).catch((e) => toast.error(String(e)))}
+                                                                className="p-2 bg-green-500/10 text-green-500 rounded-xl cursor-pointer transition-transform active:scale-90"
+                                                            >
+                                                                <CheckCircle size={18} />
+                                                            </button>
+                                                            <button
+                                                                disabled={isUpdating}
+                                                                onClick={() => void updateWithdrawWalletRequest({ id: r._id, status: "REJECTED" }).then(() => toast.success("Request rejected")).catch((e) => toast.error(String(e)))}
+                                                                className="p-2 bg-red-500/10 text-red-500 rounded-xl cursor-pointer transition-transform active:scale-90"
+                                                            >
+                                                                <XCircle size={18} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
                         )}
                     </div>
                 ) : activeTab === "HISTORY" ? (

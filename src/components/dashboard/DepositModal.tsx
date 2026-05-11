@@ -21,14 +21,17 @@ export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending,
     const [addr, setAddr] = useState<AddressData>({ address: null, network: "TRON (TRC-20)" });
     const [loading, setLoading] = useState(false);
     const [copied, setCopied] = useState(false);
-    const [amount, setAmount] = useState(requiredAmount?.toString() ?? "");
+    const [amount, setAmount] = useState("");
     const [showQr, setShowQr] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [submittedAmount, setSubmittedAmount] = useState(0);
 
     useEffect(() => {
-        if (!isOpen) { setSubmitted(false); return; }
-        setAmount(requiredAmount?.toString() ?? "");
+        if (!isOpen) {
+            setSubmitted(false);
+            return;
+        }
+        setAmount("");
         setShowQr(false);
         setSubmitted(false);
     }, [isOpen, requiredAmount]);
@@ -53,6 +56,10 @@ export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending,
     const handleSubmit = async () => {
         const val = Number(amount);
         if (!val || val <= 0) { toast.error("Enter the amount you sent"); return; }
+        if (requiredAmount && val < requiredAmount) {
+            toast.error(`Minimum deposit for this order is ${requiredAmount.toFixed(4)} USDT`);
+            return;
+        }
         if (!onSubmitPending) return;
         try {
             await onSubmitPending(val, addr.address ?? "");
@@ -149,7 +156,8 @@ export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending,
                         <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-2xl">
                             <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
                             <p className="text-xs text-red-600 dark:text-red-400 font-medium leading-relaxed">
-                                You have an order that has not been paid. Please deposit <strong>{requiredAmount.toFixed(4)} USDT</strong> to continue.
+                                You have an unpaid order. Enter the amount you will deposit below — minimum{" "}
+                                <strong>{requiredAmount.toFixed(4)} USDT</strong>.
                             </p>
                         </div>
                     )}

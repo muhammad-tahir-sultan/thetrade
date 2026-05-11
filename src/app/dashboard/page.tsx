@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useTrading } from "@/hooks/useTrading";
 import { ProfileHeader } from "@/components/dashboard/ProfileHeader";
 import { DepositModal } from "@/components/dashboard/DepositModal";
-import { Users, ClipboardList, TrendingUp, Mail, UserCircle, ArrowDownCircle, ArrowUpCircle, Settings, Shield, ChevronRight, X } from "lucide-react";
+import { Users, ClipboardList, TrendingUp, Mail, UserCircle, ArrowDownCircle, ArrowUpCircle, Settings, Shield, ChevronRight, X, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -17,24 +17,51 @@ const QUICK_ACTIONS = [
     { label: "Invite", icon: Mail, bg: "bg-teal-500", href: "/dashboard/invite" },
 ];
 
-function WithdrawModal({ isOpen, onClose, balance, dailyTasksCompleted, maxDailyTasks, onWithdraw, isPending }: {
+function WithdrawModal({ isOpen, onClose, balance, dailyTasksCompleted, maxDailyTasks, hasPendingWithdraw, savedWithdrawAddress, hasPendingWithdrawWalletChange, isAdminUser, onWithdraw, isPending }: {
     isOpen: boolean; onClose: () => void; balance: number;
     dailyTasksCompleted: number; maxDailyTasks: number;
-    onWithdraw: (amount: number, address: string, network: string) => Promise<void>; isPending: boolean;
+    hasPendingWithdraw: boolean;
+    savedWithdrawAddress: string;
+    hasPendingWithdrawWalletChange: boolean;
+    /** Admins use instant withdraw server-side; no saved wallet required. */
+    isAdminUser: boolean;
+    onWithdraw: (amount: number, withdrawAddress?: string, withdrawNetwork?: string) => Promise<void>;
+    isPending: boolean;
 }) {
     const [amount, setAmount] = useState("");
-    const [address, setAddress] = useState("");
+    const [adminAddress, setAdminAddress] = useState("");
     const tasksComplete = dailyTasksCompleted >= maxDailyTasks;
+    const hasWallet = Boolean(savedWithdrawAddress?.trim());
+    const walletGateOk = isAdminUser || hasWallet;
+    const canSubmitWithdraw = tasksComplete && !hasPendingWithdraw && walletGateOk;
 
     if (!isOpen) return null;
 
     const handleSubmit = async () => {
+        if (hasPendingWithdraw) {
+            toast.info(
+                "Your withdrawal request has been received and is being processed. Please wait until it is completed."
+            );
+            return;
+        }
+        if (!isAdminUser && !hasWallet) {
+            toast.error("Set your withdrawal wallet in Wallet management first.");
+            return;
+        }
         if (!tasksComplete) { toast.error(`Complete all ${maxDailyTasks} orders first`); return; }
         const val = Number(amount);
         if (!val || val <= 0) { toast.error("Enter a valid amount"); return; }
-        if (val > balance) { toast.error("Insufficient balance"); return; }
-        if (!address.trim()) { toast.error("Enter your wallet address"); return; }
-        try { await onWithdraw(val, address.trim(), "Binance (TRC-20)"); onClose(); setAmount(""); setAddress(""); }
+        if (val > balance) { toast.error("Withdrawal amount cannot exceed your available balance."); return; }
+        try {
+            if (isAdminUser) {
+                await onWithdraw(val, adminAddress.trim() || undefined, "Binance (TRC-20)");
+            } else {
+                await onWithdraw(val);
+            }
+            onClose();
+            setAmount("");
+            setAdminAddress("");
+        }
         catch (e: any) { toast.error(e.message); }
     };
 
@@ -47,6 +74,14 @@ function WithdrawModal({ isOpen, onClose, balance, dailyTasksCompleted, maxDaily
                 </div>
 
                 {/* Tasks gate */}
+                {hasPendingWithdraw && (
+                    <div className="p-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-2xl text-center space-y-1">
+                        <p className="text-sm font-black text-blue-700 dark:text-blue-300">Withdrawal in progress</p>
+                        <p className="text-xs text-blue-700/90 dark:text-blue-300/90 leading-relaxed">
+                            Your request has been received and is being processed. You cannot submit another until this one is completed.
+                        </p>
+                    </div>
+                )}
                 {!tasksComplete && (
                     <div className="p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl text-center space-y-1">
                         <p className="text-sm font-black text-amber-600 dark:text-amber-400">Orders Required</p>
@@ -57,6 +92,49 @@ function WithdrawModal({ isOpen, onClose, balance, dailyTasksCompleted, maxDaily
                     </div>
                 )}
 
+                {!isAdminUser && !hasWallet && (
+                    <div className="p-4 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-2xl space-y-2">
+                        <p className="text-sm font-black text-rose-700 dark:text-rose-300">Withdrawal wallet not set</p>
+                        <p className="text-xs text-rose-700/90 dark:text-rose-300/90 leading-relaxed">
+                            Save your USDT withdrawal address once in Wallet management (with your login password) before you can withdraw.
+                        </p>
+                        <Link
+                            href="/dashboard/wallet"
+                            onClick={onClose}
+                            className="inline-flex items-center gap-2 text-sm font-bold text-primary underline underline-offset-2"
+                        >
+                            Open Wallet management
+                        </Link>
+                    </div>
+                )}
+                {!isAdminUser && hasWallet && (
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-secondary">Saved withdrawal address</p>
+                        <div className="px-4 py-3 bg-secondary/5 border border-secondary/10 rounded-2xl font-mono text-xs break-all text-foreground">
+                            {savedWithdrawAddress}
+                        </div>
+                        <Link href="/dashboard/wallet" onClick={onClose} className="text-xs font-bold text-primary">
+                            Change address (requires admin approval) →
+                        </Link>
+                    </div>
+                )}
+                {!isAdminUser && hasPendingWithdrawWalletChange && hasWallet && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                        A wallet change is pending approval. Withdrawals still use the address above until approved.
+                    </p>
+                )}
+                {isAdminUser && (
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-secondary">Withdrawal address (optional)</p>
+                        <input
+                            value={adminAddress}
+                            onChange={(e) => setAdminAddress(e.target.value)}
+                            disabled={!tasksComplete || hasPendingWithdraw}
+                            className="w-full px-4 py-3 bg-secondary/5 border border-secondary/10 rounded-2xl font-mono text-sm focus:border-primary/50 outline-none transition-all disabled:opacity-40"
+                            placeholder="TRC-20 address (optional for admin)"
+                        />
+                    </div>
+                )}
                 <div className="space-y-3">
                     <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-secondary mb-1.5">Network</p>
@@ -65,25 +143,19 @@ function WithdrawModal({ isOpen, onClose, balance, dailyTasksCompleted, maxDaily
                         </div>
                     </div>
                     <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-secondary mb-1.5">Wallet Address</p>
-                        <input value={address} onChange={(e) => setAddress(e.target.value)} disabled={!tasksComplete}
-                            className="w-full px-4 py-3 bg-secondary/5 border border-secondary/10 rounded-2xl font-mono text-sm focus:border-primary/50 outline-none transition-all disabled:opacity-40"
-                            placeholder="Enter your USDT TRC-20 address" />
-                    </div>
-                    <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-secondary mb-1.5">
                             Amount <span className="text-zinc-400 normal-case font-medium">({balance.toFixed(2)} USDT available)</span>
                         </p>
                         <div className="relative">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary font-bold text-sm">$</span>
-                            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} disabled={!tasksComplete}
+                            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} disabled={!tasksComplete || (!isAdminUser && !hasWallet) || hasPendingWithdraw}
                                 className="w-full pl-9 pr-4 py-3 bg-secondary/5 border border-secondary/10 rounded-2xl font-bold text-base focus:border-primary/50 outline-none transition-all disabled:opacity-40"
                                 placeholder="0.00" />
                         </div>
                     </div>
                 </div>
 
-                <button onClick={handleSubmit} disabled={isPending || !tasksComplete}
+                <button onClick={handleSubmit} disabled={isPending || !canSubmitWithdraw}
                     className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-40 cursor-pointer">
                     {isPending ? "Submitting..." : "Submit Withdrawal Request"}
                 </button>
@@ -94,7 +166,17 @@ function WithdrawModal({ isOpen, onClose, balance, dailyTasksCompleted, maxDaily
 
 export default function MinePage() {
     const { data: session } = useSession();
-    const { user, balance, dailyTasksCompleted, maxDailyTasks, isProcessing, createTransaction } = useTrading();
+    const {
+        user,
+        balance,
+        dailyTasksCompleted,
+        maxDailyTasks,
+        hasPendingWithdraw,
+        savedWithdrawAddress,
+        hasPendingWithdrawWalletChange,
+        isProcessing,
+        createTransaction,
+    } = useTrading();
     const [showDeposit, setShowDeposit] = useState(false);
     const [showWithdraw, setShowWithdraw] = useState(false);
 
@@ -102,6 +184,7 @@ export default function MinePage() {
 
     const menuItems = [
         { label: "Profile", icon: UserCircle, href: "/dashboard/profile" },
+        { label: "Wallet management", icon: Wallet, href: "/dashboard/wallet" },
         { label: "Deposit records", icon: ArrowDownCircle, href: "/dashboard/history?type=DEPOSIT" },
         { label: "Withdrawal records", icon: ArrowUpCircle, href: "/dashboard/history?type=WITHDRAW" },
         { label: "Setting", icon: Settings, href: "/dashboard/settings" },
@@ -173,8 +256,17 @@ export default function MinePage() {
                 balance={balance}
                 dailyTasksCompleted={dailyTasksCompleted}
                 maxDailyTasks={maxDailyTasks}
+                hasPendingWithdraw={hasPendingWithdraw}
+                savedWithdrawAddress={savedWithdrawAddress}
+                hasPendingWithdrawWalletChange={hasPendingWithdrawWalletChange}
+                isAdminUser={(user as { role?: string } | undefined)?.role === "ADMIN"}
                 onWithdraw={async (amount, withdrawAddress, withdrawNetwork) => {
-                    await createTransaction({ type: "WITHDRAW", amount, withdrawAddress, withdrawNetwork });
+                    await createTransaction({
+                        type: "WITHDRAW",
+                        amount,
+                        withdrawAddress: withdrawAddress ?? "",
+                        withdrawNetwork: withdrawNetwork ?? "",
+                    });
                     toast.success("Withdrawal request submitted! Admin will review shortly.");
                 }}
                 isPending={isProcessing}

@@ -61,15 +61,44 @@ export const transactionServerService = {
             return { balance: user.balance, transaction };
         }
 
+        if (type === "WITHDRAW") {
+            const balanceNum = Number(user.balance) || 0;
+            if (amount > balanceNum) {
+                throw new Error("Withdrawal amount cannot exceed your available balance.");
+            }
+            const pendingWithdraw = await Transaction.findOne({
+                userId,
+                type: "WITHDRAW",
+                status: "PENDING",
+            }).select("_id");
+            if (pendingWithdraw) {
+                throw new Error(
+                    "Your withdrawal request has been received and is being processed. " +
+                        "Please wait until it is completed before submitting another."
+                );
+            }
+        }
+
         // Regular users: create a PENDING request
+        let finalWithdrawAddress = withdrawAddress || "";
+        let finalWithdrawNetwork = withdrawNetwork || "";
+        if (type === "WITHDRAW") {
+            const savedAddr = String(user.savedWithdrawAddress || "").trim();
+            if (!savedAddr) {
+                throw new Error("Set your withdrawal wallet in Wallet Management before withdrawing.");
+            }
+            finalWithdrawAddress = savedAddr;
+            finalWithdrawNetwork = String(user.savedWithdrawNetwork || "").trim() || "Binance (TRC-20)";
+        }
+
         const transaction = await Transaction.create({
             userId,
             type,
             amount,
             status: "PENDING",
             depositAddress: depositAddress || "",
-            withdrawAddress: withdrawAddress || "",
-            withdrawNetwork: withdrawNetwork || "",
+            withdrawAddress: finalWithdrawAddress,
+            withdrawNetwork: finalWithdrawNetwork,
         });
         return { balance: user.balance, transaction };
     },

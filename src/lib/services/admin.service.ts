@@ -106,6 +106,16 @@ export const adminService = {
         return response.data;
     },
 
+    async getWithdrawWalletRequests() {
+        const response = await apiClient.get("/admin/withdraw-wallet-requests");
+        return response.data;
+    },
+
+    async updateWithdrawWalletRequest(id: string, status: "APPROVED" | "REJECTED", adminRemark?: string) {
+        const response = await apiClient.patch("/admin/withdraw-wallet-requests", { id, status, adminRemark });
+        return response.data;
+    },
+
     async getRoles() {
         const response = await apiClient.get("/admin/roles");
         return response.data;

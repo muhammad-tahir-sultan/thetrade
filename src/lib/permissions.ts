@@ -9,6 +9,7 @@ export const ADMIN_PERMISSION_META = [
     { id: "MANAGE_USERS", label: "Create, edit, delete users" },
     { id: "MANAGE_PRODUCTS", label: "Spinner / grab catalog products & uploads" },
     { id: "MANAGE_PASSWORD_REQUESTS", label: "User password-change approvals" },
+    { id: "MANAGE_WITHDRAW_WALLET_REQUESTS", label: "User withdrawal wallet address change approvals" },
     { id: "VIEW_HISTORY", label: "Global activity & transaction history timeline" },
     { id: "MANAGE_ROLES", label: "Create roles & assign permission sets" },
 ] as const;

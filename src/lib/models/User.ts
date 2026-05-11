@@ -28,6 +28,9 @@ const UserSchema = new Schema({
     invitedByCode: { type: String, uppercase: true, trim: true },
     invitedBy: { type: Schema.Types.ObjectId, ref: "User" },
     totalInvites: { type: Number, default: 0 },
+    /** Saved USDT withdrawal address (set once in Wallet Management; changes require admin approval). */
+    savedWithdrawAddress: { type: String, default: "" },
+    savedWithdrawNetwork: { type: String, default: "Binance (TRC-20)" },
     createdAt: { type: Date, default: Date.now },
 });
 
