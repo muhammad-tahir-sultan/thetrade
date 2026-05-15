@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PlusCircle, MinusCircle } from "lucide-react";
 import { DepositModal } from "./DepositModal";
+import { useTrading } from "@/hooks/useTrading";
 
 interface TransactionFormProps {
     onAction: (type: "DEPOSIT" | "WITHDRAW", amount: number, depositAddress?: string) => Promise<unknown>;
@@ -11,6 +12,7 @@ interface TransactionFormProps {
 }
 
 export function TransactionForm({ onAction, isPending, balance }: TransactionFormProps) {
+    const { hasPendingDeposit } = useTrading();
     const [amount, setAmount] = useState("");
     const [error, setError] = useState("");
     const [showDepositModal, setShowDepositModal] = useState(false);
@@ -85,6 +87,7 @@ export function TransactionForm({ onAction, isPending, balance }: TransactionFor
             <DepositModal
                 isOpen={showDepositModal}
                 onClose={() => setShowDepositModal(false)}
+                hasPendingDeposit={hasPendingDeposit}
                 onSubmitPending={handleDepositSubmit}
                 isPending={isPending}
             />

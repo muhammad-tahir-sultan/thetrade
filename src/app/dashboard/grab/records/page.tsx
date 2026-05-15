@@ -11,7 +11,7 @@ import { DepositModal } from "@/components/dashboard/DepositModal";
 
 export default function GrabRecordsPage() {
     const { records, isLoadingRecords, refetchRecords, completeOrder, isCompleting, cancelOrder, isCancelling } = useGrabOrder();
-    const { balance, createTransaction, isProcessing, refresh } = useTrading();
+    const { balance, createTransaction, isProcessing, refresh, hasPendingDeposit } = useTrading();
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
     const [orderError, setOrderError] = useState<string | null>(null);
     const [depositOrder, setDepositOrder] = useState<any>(null);
@@ -107,6 +107,7 @@ export default function GrabRecordsPage() {
                     await createTransaction({ type: "DEPOSIT", amount, depositAddress });
                 }}
                 isDepositPending={isProcessing}
+                hasPendingDeposit={hasPendingDeposit}
             />
 
             {/* Deposit modal for COMBO orders that need funding */}
@@ -114,6 +115,7 @@ export default function GrabRecordsPage() {
                 isOpen={!!depositOrder}
                 onClose={() => setDepositOrder(null)}
                 requiredAmount={depositOrder?.requiredDeposit ?? undefined}
+                hasPendingDeposit={hasPendingDeposit}
                 onSubmitPending={handleDepositForOrder}
                 isPending={isProcessing}
             />

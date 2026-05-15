@@ -15,7 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { grabService } from "@/lib/services/grab.service";
 
 export default function GrabPage() {
-    const { user, balance, dailyTasksCompleted, maxDailyTasks, taskRequestStatus, createTransaction, isProcessing } = useTrading();
+    const { user, balance, dailyTasksCompleted, maxDailyTasks, taskRequestStatus, hasPendingDeposit, createTransaction, isProcessing } = useTrading();
     const { grabOrder, completeOrder, requestCS, isGrabbing, isCompleting, currentOrder } = useGrabOrder();
 
     const [isSpinning, setIsSpinning] = useState(false);
@@ -174,6 +174,7 @@ export default function GrabPage() {
                     await createTransaction({ type: "DEPOSIT", amount, depositAddress });
                 }}
                 isDepositPending={isProcessing}
+                hasPendingDeposit={hasPendingDeposit}
             />
         </div>
     );

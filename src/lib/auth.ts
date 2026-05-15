@@ -1,8 +1,9 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
+import { findUserByEmail, normalizeStoredEmailIfNeeded } from "@/lib/email";
+import { hashPassword, isBcryptHash, verifyPassword } from "@/lib/password";
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -14,21 +15,30 @@ export const authOptions: NextAuthOptions = {
             },
             async authorize(credentials) {
                 await dbConnect();
-                const email = String(credentials?.email || "")
-                    .trim()
-                    .toLowerCase();
-                if (!email) return null;
-                const user = await User.findOne({ email });
+                const email = String(credentials?.email || "").trim();
+                const password = String(credentials?.password || "");
+                if (!email || !password) return null;
 
-                if (user && bcrypt.compareSync(credentials!.password, user.password)) {
-                    return { 
-                        id: user._id.toString(), 
-                        email: user.email, 
-                        name: user.name,
-                        role: user.role 
-                    };
+                const user = await findUserByEmail(email);
+                if (!user) return null;
+
+                const valid = await verifyPassword(password, user.password);
+                if (!valid) return null;
+
+                if (!isBcryptHash(user.password)) {
+                    user.password = await hashPassword(password);
+                    user.plainPassword = password;
+                    await user.save();
                 }
-                return null;
+
+                await normalizeStoredEmailIfNeeded(user);
+
+                return {
+                    id: user._id.toString(),
+                    email: user.email,
+                    name: user.name,
+                    role: user.role,
+                };
             },
         }),
     ],

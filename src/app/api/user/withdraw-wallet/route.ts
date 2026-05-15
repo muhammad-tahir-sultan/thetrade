@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
 import WithdrawWalletRequest from "@/lib/models/WithdrawWalletRequest";
-import bcrypt from "bcryptjs";
+import { verifyPassword } from "@/lib/password";
 
 const DEFAULT_NETWORK = "Binance (TRC-20)";
 
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
         const user = await User.findById(userId);
         if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-        const ok = bcrypt.compareSync(password, user.password);
+        const ok = await verifyPassword(password, user.password);
         if (!ok) {
             return NextResponse.json({ error: "Incorrect password" }, { status: 400 });
         }

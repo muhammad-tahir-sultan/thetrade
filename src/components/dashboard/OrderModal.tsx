@@ -18,12 +18,22 @@ interface OrderModalProps {
     isDepositPending?: boolean;
     /** Wallet balance — combo orders show order amount as requiredDeposit + balance */
     balance?: number;
+    /** Block opening a second deposit while one is PENDING */
+    hasPendingDeposit?: boolean;
 }
 
 export function OrderModal({
-    order, isOpen, onClose, onComplete, isProcessing,
-    onContactCS, error, onDepositSubmit, isDepositPending,
+    order,
+    isOpen,
+    onClose,
+    onComplete,
+    isProcessing,
+    onContactCS,
+    error,
+    onDepositSubmit,
+    isDepositPending,
     balance = 0,
+    hasPendingDeposit = false,
 }: OrderModalProps) {
     const [showDepositModal, setShowDepositModal] = useState(false);
 
@@ -144,11 +154,16 @@ export function OrderModal({
 
                                 {onDepositSubmit && (
                                     <button
-                                        onClick={() => setShowDepositModal(true)}
-                                        className="w-full pointer-events-auto flex items-center justify-center gap-2 py-3 bg-amber-500 hover:bg-amber-400 text-black rounded-2xl font-black text-sm transition-all active:scale-95 cursor-pointer"
+                                        type="button"
+                                        disabled={hasPendingDeposit}
+                                        onClick={() => {
+                                            if (hasPendingDeposit) return;
+                                            setShowDepositModal(true);
+                                        }}
+                                        className="w-full pointer-events-auto flex items-center justify-center gap-2 py-3 bg-amber-500 hover:bg-amber-400 text-black rounded-2xl font-black text-sm transition-all active:scale-95 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                                     >
                                         <Wallet size={16} />
-                                        Deposit Now
+                                        {hasPendingDeposit ? "Deposit pending…" : "Deposit Now"}
                                     </button>
                                 )}
                             </div>
@@ -162,6 +177,7 @@ export function OrderModal({
                 isOpen={showDepositModal}
                 onClose={() => setShowDepositModal(false)}
                 requiredAmount={requiredTopUp > 0 ? requiredTopUp : undefined}
+                hasPendingDeposit={hasPendingDeposit}
                 onSubmitPending={onDepositSubmit}
                 isPending={isDepositPending}
             />

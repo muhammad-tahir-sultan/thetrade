@@ -11,13 +11,15 @@ interface DepositModalProps {
     isOpen: boolean;
     onClose: () => void;
     requiredAmount?: number;
+    /** When true, user already has a PENDING deposit — block another until processed. */
+    hasPendingDeposit?: boolean;
     onSubmitPending?: (amount: number, depositAddress: string) => Promise<void>;
     isPending?: boolean;
 }
 
 interface AddressData { address: string | null; network: string; }
 
-export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending, isPending }: DepositModalProps) {
+export function DepositModal({ isOpen, onClose, requiredAmount, hasPendingDeposit = false, onSubmitPending, isPending }: DepositModalProps) {
     const [addr, setAddr] = useState<AddressData>({ address: null, network: "TRON (TRC-20)" });
     const [loading, setLoading] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -35,6 +37,10 @@ export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending,
         setShowQr(false);
         setSubmitted(false);
     }, [isOpen, requiredAmount]);
+
+    useEffect(() => {
+        if (hasPendingDeposit) setShowQr(false);
+    }, [hasPendingDeposit]);
 
     const fetchAddress = async () => {
         setLoading(true);
@@ -54,6 +60,12 @@ export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending,
     };
 
     const handleSubmit = async () => {
+        if (hasPendingDeposit) {
+            toast.info(
+                "Your deposit request has been received and is being processed. Please wait until it is completed."
+            );
+            return;
+        }
         const val = Number(amount);
         if (!val || val <= 0) { toast.error("Enter the amount you sent"); return; }
         if (requiredAmount && val < requiredAmount) {
@@ -69,6 +81,12 @@ export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending,
     };
 
     const handleContinueToQr = async () => {
+        if (hasPendingDeposit) {
+            toast.info(
+                "Your deposit request has been received and is being processed. Please wait until it is completed."
+            );
+            return;
+        }
         const val = Number(amount);
         if (!val || val <= 0) { toast.error("Enter deposit amount first"); return; }
         if (requiredAmount && val < requiredAmount) {
@@ -151,6 +169,15 @@ export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending,
                         )}
                     </div>
 
+                    {hasPendingDeposit && (
+                        <div className="p-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-2xl space-y-1">
+                            <p className="text-sm font-black text-blue-700 dark:text-blue-300">Deposit in progress</p>
+                            <p className="text-xs text-blue-700/90 dark:text-blue-300/90 leading-relaxed">
+                                Your deposit request has been received and is being processed. You cannot submit another until this one is completed.
+                            </p>
+                        </div>
+                    )}
+
                     {/* Warning — only for combo/required deposits */}
                     {requiredAmount && requiredAmount > 0 && (
                         <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-2xl">
@@ -172,12 +199,14 @@ export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending,
                                     placeholder="0.00"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
-                                    className="w-full pl-9 pr-4 py-3.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl font-bold text-base focus:border-primary/50 outline-none transition-all"
+                                    disabled={hasPendingDeposit}
+                                    className="w-full pl-9 pr-4 py-3.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl font-bold text-base focus:border-primary/50 outline-none transition-all disabled:opacity-40"
                                 />
                             </div>
                             <button
-                                onClick={handleContinueToQr}
-                                className={cn("w-full py-4 bg-primary text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer", !amount && "opacity-50")}
+                                onClick={() => void handleContinueToQr()}
+                                disabled={hasPendingDeposit || !amount}
+                                className={cn("w-full py-4 bg-primary text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer", (!amount || hasPendingDeposit) && "opacity-50")}
                             >
                                 Continue to QR
                             </button>
@@ -216,9 +245,9 @@ export function DepositModal({ isOpen, onClose, requiredAmount, onSubmitPending,
 
                             {onSubmitPending && (
                                 <div className="space-y-3 pt-2 border-t border-black/5 dark:border-white/5">
-                                    <button onClick={handleSubmit} disabled={isPending || !addr.address || !amount}
+                                    <button onClick={handleSubmit} disabled={isPending || !addr.address || !amount || hasPendingDeposit}
                                         className={cn("w-full py-4 bg-green-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-green-500/20 hover:bg-green-600 active:scale-[0.98] transition-all cursor-pointer",
-                                            (isPending || !addr.address || !amount) && "opacity-50 cursor-not-allowed")}>
+                                            (isPending || !addr.address || !amount || hasPendingDeposit) && "opacity-50 cursor-not-allowed")}>
                                         {isPending ? "Submitting..." : "I Have Paid — Submit Request"}
                                     </button>
                                 </div>

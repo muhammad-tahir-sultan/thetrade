@@ -79,6 +79,20 @@ export const transactionServerService = {
             }
         }
 
+        if (type === "DEPOSIT") {
+            const pendingDeposit = await Transaction.findOne({
+                userId,
+                type: "DEPOSIT",
+                status: "PENDING",
+            }).select("_id");
+            if (pendingDeposit) {
+                throw new Error(
+                    "Your deposit request has been received and is being processed. " +
+                        "Please wait until it is completed before submitting another."
+                );
+            }
+        }
+
         // Regular users: create a PENDING request
         let finalWithdrawAddress = withdrawAddress || "";
         let finalWithdrawNetwork = withdrawNetwork || "";

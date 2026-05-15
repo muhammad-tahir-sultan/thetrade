@@ -5,7 +5,7 @@ import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
 /** Ensures Mongoose registers StaffRole before populate("staffRole"). */
 import "@/lib/models/StaffRole";
-import bcrypt from "bcryptjs";
+import { verifyPassword } from "@/lib/password";
 import { generateUniqueInviteCode } from "@/lib/invitation";
 import { ALL_ADMIN_PERMISSION_IDS } from "@/lib/permissions";
 import {
@@ -81,6 +81,9 @@ export async function GET() {
         const hasPendingWithdraw = Boolean(
             await Transaction.exists({ userId, type: "WITHDRAW", status: "PENDING" })
         );
+        const hasPendingDeposit = Boolean(
+            await Transaction.exists({ userId, type: "DEPOSIT", status: "PENDING" })
+        );
         const hasPendingWithdrawWalletChange = Boolean(
             await WithdrawWalletRequest.exists({ userId, status: "PENDING" })
         );
@@ -99,6 +102,7 @@ export async function GET() {
             isSuperAdmin: Boolean(isSuperAdmin),
             adminPermissions,
             hasPendingWithdraw,
+            hasPendingDeposit,
             hasPendingWithdrawWalletChange,
             savedWithdrawAddress: String((user as { savedWithdrawAddress?: string }).savedWithdrawAddress || "").trim(),
             savedWithdrawNetwork: String((user as { savedWithdrawNetwork?: string }).savedWithdrawNetwork || "Binance (TRC-20)").trim() || "Binance (TRC-20)",
@@ -130,7 +134,7 @@ export async function PATCH(req: Request) {
             if (!currentPassword) {
                 return NextResponse.json({ error: "Current password is required" }, { status: 400 });
             }
-            const isMatch = await bcrypt.compare(currentPassword, user.password);
+            const isMatch = await verifyPassword(currentPassword, user.password);
             if (!isMatch) {
                 return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
             }

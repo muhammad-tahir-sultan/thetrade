@@ -1,7 +1,8 @@
 import User from "@/lib/models/User";
 import dbConnect from "@/lib/mongodb";
-import bcrypt from "bcryptjs";
 import { DEFAULT_ADMIN_INVITATION_CODE, generateUniqueInviteCode } from "@/lib/invitation";
+import { findUserByEmail, normalizeEmail } from "@/lib/email";
+import { hashPassword } from "@/lib/password";
 
 export const authServerService = {
     async ensureAdminInvitationCode() {
@@ -23,21 +24,27 @@ export const authServerService = {
     },
 
     async registerUser(data: any) {
-        const { name, email, password } = data;
+        const name = String(data.name || "").trim();
+        const email = normalizeEmail(data.email);
+        const password = String(data.password || "");
         const invitationCode = String(data.invitationCode || "").trim().toUpperCase();
+
+        if (!name || !email || !password) {
+            throw new Error("Name, email, and password are required");
+        }
 
         await dbConnect();
 
         const userCount = await User.countDocuments();
         const existingAdmin = await this.ensureAdminInvitationCode();
 
-        const existingUser = await User.findOne({ email });
+        const existingUser = await findUserByEmail(email);
         if (existingUser) {
             throw new Error("User already exists");
         }
 
         if (userCount === 0) {
-            const hashedPassword = await bcrypt.hash(password, 12);
+            const hashedPassword = await hashPassword(password);
             const adminCode = await generateUniqueInviteCode(
                 async (code) => !!(await User.exists({ invitationCode: code })),
                 DEFAULT_ADMIN_INVITATION_CODE
@@ -64,7 +71,7 @@ export const authServerService = {
             throw new Error("Invalid invitation code");
         }
 
-        const hashedPassword = await bcrypt.hash(password, 12);
+        const hashedPassword = await hashPassword(password);
         const newUserInvitationCode = await generateUniqueInviteCode(
             async (code) => !!(await User.exists({ invitationCode: code }))
         );

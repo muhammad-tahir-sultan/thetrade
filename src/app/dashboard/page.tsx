@@ -172,6 +172,7 @@ export default function MinePage() {
         dailyTasksCompleted,
         maxDailyTasks,
         hasPendingWithdraw,
+        hasPendingDeposit,
         savedWithdrawAddress,
         hasPendingWithdrawWalletChange,
         isProcessing,
@@ -244,6 +245,7 @@ export default function MinePage() {
             <DepositModal
                 isOpen={showDeposit}
                 onClose={() => setShowDeposit(false)}
+                hasPendingDeposit={hasPendingDeposit}
                 onSubmitPending={async (amount, depositAddress) => {
                     await createTransaction({ type: "DEPOSIT", amount, depositAddress });
                 }}

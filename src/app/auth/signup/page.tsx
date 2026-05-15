@@ -24,7 +24,12 @@ export default function SignupPage() {
         setError("");
 
         try {
-            await authService.signup({ name, email, password, invitationCode: invitationCode.trim().toUpperCase() });
+            await authService.signup({
+                name: name.trim(),
+                email: email.trim().toLowerCase(),
+                password,
+                invitationCode: invitationCode.trim().toUpperCase(),
+            });
             toast.success("Account created successfully!");
             router.push("/auth/login");
         } catch (err: any) {

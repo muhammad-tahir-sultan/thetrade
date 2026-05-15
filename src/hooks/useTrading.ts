@@ -53,6 +53,7 @@ export function useTrading() {
         isSuperAdmin: Boolean(userQuery.data?.isSuperAdmin),
         adminPermissions: (userQuery.data?.adminPermissions || []) as string[],
         hasPendingWithdraw: Boolean((userQuery.data as { hasPendingWithdraw?: boolean } | undefined)?.hasPendingWithdraw),
+        hasPendingDeposit: Boolean((userQuery.data as { hasPendingDeposit?: boolean } | undefined)?.hasPendingDeposit),
         savedWithdrawAddress: String((userQuery.data as { savedWithdrawAddress?: string } | undefined)?.savedWithdrawAddress || "").trim(),
         savedWithdrawNetwork: String((userQuery.data as { savedWithdrawNetwork?: string } | undefined)?.savedWithdrawNetwork || "Binance (TRC-20)").trim() || "Binance (TRC-20)",
         hasPendingWithdrawWalletChange: Boolean(
