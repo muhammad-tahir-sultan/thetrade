@@ -35,6 +35,10 @@ export async function PATCH(req: Request) {
         await assertAdminPermission((session.user as any).id, "MANAGE_CS");
 
         const { id, status, adminRemark } = await req.json();
+        if (!["RESOLVED", "REJECTED"].includes(status)) {
+            return NextResponse.json({ error: "Invalid request status" }, { status: 400 });
+        }
+
         const request = await CSRequest.findById(id);
         if (!request) return NextResponse.json({ error: "Request not found" }, { status: 404 });
 

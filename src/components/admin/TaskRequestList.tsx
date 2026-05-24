@@ -1,22 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, Info, Settings, Plus, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { CheckCircle, Settings, Plus, Trash2, XCircle } from "lucide-react";
 
 interface TaskRequestListProps {
     requests: any[];
     onApprove: (userId: string, comboConfig: any[]) => Promise<boolean>;
+    onCancel: (userId: string) => Promise<boolean>;
     isUpdating: boolean;
 }
 
-export function TaskRequestList({ requests, onApprove, isUpdating }: TaskRequestListProps) {
+export function TaskRequestList({ requests, onApprove, onCancel, isUpdating }: TaskRequestListProps) {
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [comboConfigs, setComboConfigs] = useState<any[]>([]);
 
     const handleApprove = async () => {
         const success = await onApprove(selectedUser._id, comboConfigs);
         if (success) {
+            setSelectedUser(null);
+            setComboConfigs([]);
+        }
+    };
+
+    const handleCancel = async (userId: string) => {
+        const success = await onCancel(userId);
+        if (success && selectedUser?._id === userId) {
             setSelectedUser(null);
             setComboConfigs([]);
         }
@@ -109,13 +117,22 @@ export function TaskRequestList({ requests, onApprove, isUpdating }: TaskRequest
                         ))}
                     </div>
 
-                    <button 
-                        disabled={isUpdating}
-                        onClick={handleApprove}
-                        className="w-full py-4 bg-primary text-white rounded-2xl font-black tracking-widest uppercase text-xs shadow-xl shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-50"
-                    >
-                        {isUpdating ? "Processing..." : "Approve & Configure Tasks"}
-                    </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                            disabled={isUpdating}
+                            onClick={handleApprove}
+                            className="w-full py-4 bg-primary text-white rounded-2xl font-black tracking-widest uppercase text-xs shadow-xl shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-50"
+                        >
+                            {isUpdating ? "Processing..." : "Approve & Configure Tasks"}
+                        </button>
+                        <button
+                            disabled={isUpdating}
+                            onClick={() => void handleCancel(selectedUser._id)}
+                            className="w-full py-4 bg-red-500/10 text-red-500 rounded-2xl font-black tracking-widest uppercase text-xs hover:bg-red-500/20 active:scale-[0.99] transition-all disabled:opacity-50"
+                        >
+                            Cancel Request
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -143,13 +160,22 @@ export function TaskRequestList({ requests, onApprove, isUpdating }: TaskRequest
                                 <span className="px-2 py-1 bg-amber-500/10 text-amber-500 rounded-full text-[10px] font-bold">PENDING APPROVAL</span>
                             </td>
                             <td className="p-4 sm:p-6 font-black">${user.balance.toFixed(2)}</td>
-                            <td className="p-4 sm:p-6 text-right">
-                                <button 
-                                    onClick={() => setSelectedUser(user)}
-                                    className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:scale-105 transition-all shadow-md active:scale-95 cursor-pointer"
-                                >
-                                    Review & Approve
-                                </button>
+                            <td className="p-4 sm:p-6">
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        onClick={() => setSelectedUser(user)}
+                                        className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:scale-105 transition-all shadow-md active:scale-95 cursor-pointer"
+                                    >
+                                        Review & Approve
+                                    </button>
+                                    <button
+                                        disabled={isUpdating}
+                                        onClick={() => void handleCancel(user._id)}
+                                        className="px-4 py-2 bg-red-500/10 text-red-500 rounded-xl text-xs font-bold hover:bg-red-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                                    >
+                                        <XCircle size={14} /> Cancel
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     ))}

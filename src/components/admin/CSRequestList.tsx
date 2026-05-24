@@ -6,10 +6,11 @@ import Image from "next/image";
 interface CSRequestListProps {
     requests: any[];
     onResolve: (id: string) => void;
+    onReject: (id: string) => void;
     isUpdating: boolean;
 }
 
-export function CSRequestList({ requests, onResolve, isUpdating }: CSRequestListProps) {
+export function CSRequestList({ requests, onResolve, onReject, isUpdating }: CSRequestListProps) {
     if (requests.length === 0) {
         return (
             <div className="w-full min-h-[400px] p-12 text-center flex flex-col items-center justify-center gap-4 text-secondary flex-1">
@@ -98,6 +99,13 @@ export function CSRequestList({ requests, onResolve, isUpdating }: CSRequestList
                                     className="px-4 py-2 bg-green-500/10 text-green-500 hover:bg-green-500/20 rounded-xl transition-all font-bold flex items-center gap-2 text-xs cursor-pointer"
                                 >
                                     <CheckCircle size={14} /> {req.type === "COMBO_UNLOCK" ? "Resolve (Unlock)" : "Mark Resolved"}
+                                </button>
+                                <button
+                                    disabled={isUpdating}
+                                    onClick={() => onReject(req._id)}
+                                    className="px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-xl transition-all font-bold flex items-center gap-2 text-xs cursor-pointer disabled:opacity-50"
+                                >
+                                    <XCircle size={14} /> Reject
                                 </button>
                             </td>
                         </tr>

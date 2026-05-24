@@ -46,7 +46,7 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
     });
 
     const updateCSMutation = useMutation({
-        mutationFn: ({ id, status, adminRemark }: { id: string; status: string; adminRemark?: string }) =>
+        mutationFn: ({ id, status, adminRemark }: { id: string; status: "RESOLVED" | "REJECTED"; adminRemark?: string }) =>
             adminService.updateCSStatus(id, { status, adminRemark }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-cs-requests"] });
@@ -66,6 +66,15 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
             adminService.approveTasks(userId, comboConfig),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-task-requests"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
+        },
+    });
+
+    const cancelTaskRequestMutation = useMutation({
+        mutationFn: ({ userId }: { userId: string }) => adminService.cancelTaskRequest(userId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-task-requests"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
         },
     });
 
@@ -170,11 +179,13 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
             updateStatusMutation.isPending ||
             updateCSMutation.isPending ||
             approveTasksMutation.isPending ||
+            cancelTaskRequestMutation.isPending ||
             passwordRequestMutation.isPending ||
             withdrawWalletRequestMutation.isPending,
         updateStatus: updateStatusMutation.mutateAsync,
         updateCSStatus: updateCSMutation.mutateAsync,
         approveTasks: approveTasksMutation.mutateAsync,
+        cancelTaskRequest: cancelTaskRequestMutation.mutateAsync,
         updatePasswordRequest: passwordRequestMutation.mutateAsync,
         updateWithdrawWalletRequest: withdrawWalletRequestMutation.mutateAsync,
         refreshAddresses: () => depositAddressesQuery.refetch(),

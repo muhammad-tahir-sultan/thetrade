@@ -47,6 +47,7 @@ export default function AdminDashboard() {
         updateStatus,
         updateCSStatus,
         approveTasks,
+        cancelTaskRequest,
         updatePasswordRequest,
         updateWithdrawWalletRequest,
         isUpdating,
@@ -83,6 +84,15 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleRejectCS = async (id: string) => {
+        try {
+            await updateCSStatus({ id, status: "REJECTED" });
+            toast.success("Request rejected");
+        } catch (error: unknown) {
+            toast.error("Failed to reject: " + getErrorMessage(error, "Request failed"));
+        }
+    };
+
     const handleApproveTasks = async (userId: string, comboConfig: any[]) => {
         try {
             await approveTasks({ userId, comboConfig });
@@ -90,6 +100,17 @@ export default function AdminDashboard() {
             return true;
         } catch (error: any) {
             toast.error("Failed to approve: " + error.message);
+            return false;
+        }
+    };
+
+    const handleCancelTaskRequest = async (userId: string) => {
+        try {
+            await cancelTaskRequest({ userId });
+            toast.success("Task request cancelled");
+            return true;
+        } catch (error: unknown) {
+            toast.error("Failed to cancel: " + getErrorMessage(error, "Request failed"));
             return false;
         }
     };
@@ -362,10 +383,10 @@ export default function AdminDashboard() {
                                 </button>
                             </div>
                         </div>
-                        <CSRequestList requests={csRequests} onResolve={handleResolveCS} isUpdating={isUpdating} />
+                        <CSRequestList requests={csRequests} onResolve={handleResolveCS} onReject={handleRejectCS} isUpdating={isUpdating} />
                     </div>
                 ) : activeTab === "TASK_REQUESTS" ? (
-                    <TaskRequestList requests={taskRequests} onApprove={handleApproveTasks} isUpdating={isUpdating} />
+                    <TaskRequestList requests={taskRequests} onApprove={handleApproveTasks} onCancel={handleCancelTaskRequest} isUpdating={isUpdating} />
                 ) : activeTab === "INVITATIONS" ? (
                     <div className="space-y-5 p-4 sm:p-6">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">

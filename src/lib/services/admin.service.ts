@@ -16,7 +16,7 @@ export const adminService = {
         return response.data;
     },
 
-    async updateCSStatus(id: string, data: { status: string; adminRemark?: string }) {
+    async updateCSStatus(id: string, data: { status: "RESOLVED" | "REJECTED"; adminRemark?: string }) {
         const response = await apiClient.patch("/admin/cs", { id, ...data });
         return response.data;
     },
@@ -33,6 +33,11 @@ export const adminService = {
 
     async approveTasks(userId: string, comboConfig: any[]) {
         const response = await apiClient.post("/admin/tasks/approve", { userId, comboConfig });
+        return response.data;
+    },
+
+    async cancelTaskRequest(userId: string) {
+        const response = await apiClient.patch("/admin/tasks/requests", { userId });
         return response.data;
     },
 
