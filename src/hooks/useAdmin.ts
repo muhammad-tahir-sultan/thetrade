@@ -61,6 +61,12 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
         enabled: hasPerm("MANAGE_TASK_REQUESTS"),
     });
 
+    const taskSettingsQuery = useQuery({
+        queryKey: ["admin-task-settings"],
+        queryFn: adminService.getTaskSettings,
+        enabled: hasPerm("MANAGE_TASK_REQUESTS"),
+    });
+
     const approveTasksMutation = useMutation({
         mutationFn: ({ userId, comboConfig }: { userId: string, comboConfig: any[] }) =>
             adminService.approveTasks(userId, comboConfig),
@@ -75,6 +81,14 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-task-requests"] });
             queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
+        },
+    });
+
+    const updateTaskSettingsMutation = useMutation({
+        mutationFn: ({ requestCooldownMinutes }: { requestCooldownMinutes: number }) =>
+            adminService.updateTaskSettings({ requestCooldownMinutes }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-task-settings"] });
         },
     });
 
@@ -133,6 +147,7 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
         pendingTransactionsQuery.isFetching ||
         csRequestsQuery.isFetching ||
         taskRequestsQuery.isFetching ||
+        taskSettingsQuery.isFetching ||
         invitationsQuery.isFetching ||
         historyQuery.isFetching ||
         passwordRequestsQuery.isFetching ||
@@ -143,6 +158,7 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
         pendingTransactions: pendingTransactionsQuery.data || [],
         csRequests: csRequestsQuery.data || [],
         taskRequests: taskRequestsQuery.data || [],
+        taskSettings: taskSettingsQuery.data || { requestCooldownMinutes: 20 },
         depositAddresses: depositAddressesQuery.data || [],
         invitations: invitationsQuery.data || [],
         adminHistory: historyQuery.data || [],
@@ -163,12 +179,14 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
             pendingTransactionsQuery.isLoading ||
             csRequestsQuery.isLoading ||
             taskRequestsQuery.isLoading ||
+            taskSettingsQuery.isLoading ||
             invitationsQuery.isLoading ||
             historyQuery.isLoading ||
             passwordRequestsQuery.isLoading ||
             withdrawWalletRequestsQuery.isLoading,
         error:
             taskRequestsQuery.error ||
+            taskSettingsQuery.error ||
             csRequestsQuery.error ||
             pendingTransactionsQuery.error ||
             invitationsQuery.error ||
@@ -180,12 +198,14 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
             updateCSMutation.isPending ||
             approveTasksMutation.isPending ||
             cancelTaskRequestMutation.isPending ||
+            updateTaskSettingsMutation.isPending ||
             passwordRequestMutation.isPending ||
             withdrawWalletRequestMutation.isPending,
         updateStatus: updateStatusMutation.mutateAsync,
         updateCSStatus: updateCSMutation.mutateAsync,
         approveTasks: approveTasksMutation.mutateAsync,
         cancelTaskRequest: cancelTaskRequestMutation.mutateAsync,
+        updateTaskSettings: updateTaskSettingsMutation.mutateAsync,
         updatePasswordRequest: passwordRequestMutation.mutateAsync,
         updateWithdrawWalletRequest: withdrawWalletRequestMutation.mutateAsync,
         refreshAddresses: () => depositAddressesQuery.refetch(),
@@ -195,6 +215,7 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
                 pendingTransactionsQuery.refetch(),
                 csRequestsQuery.refetch(),
                 taskRequestsQuery.refetch(),
+                taskSettingsQuery.refetch(),
                 depositAddressesQuery.refetch(),
                 invitationsQuery.refetch(),
                 historyQuery.refetch(),

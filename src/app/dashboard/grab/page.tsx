@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTrading } from "@/hooks/useTrading";
 import { useGrabOrder } from "@/hooks/useGrabOrder";
 import { Package, Clock } from "lucide-react";
@@ -15,7 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { grabService } from "@/lib/services/grab.service";
 
 export default function GrabPage() {
-    const { user, balance, dailyTasksCompleted, maxDailyTasks, taskRequestStatus, hasPendingDeposit, createTransaction, isProcessing } = useTrading();
+    const { user, balance, dailyTasksCompleted, maxDailyTasks, taskRequestStatus, hasPendingDeposit, createTransaction, isProcessing, nextTaskRequestAt, canRequestTasks } = useTrading();
     const { grabOrder, completeOrder, requestCS, isGrabbing, isCompleting, currentOrder } = useGrabOrder();
 
     const [isSpinning, setIsSpinning] = useState(false);
@@ -31,6 +31,24 @@ export default function GrabPage() {
     const busy = isSpinning || isGrabbing;
     const maxOrders = Number(maxDailyTasks || 25);
     const completedOrders = Number(dailyTasksCompleted || 0);
+    const [now, setNow] = useState(Date.now());
+    const nextRequestTime = nextTaskRequestAt ? new Date(nextTaskRequestAt).getTime() : 0;
+    const requestWaitMs = Math.max(0, nextRequestTime - now);
+    const isRequestCoolingDown = taskRequestStatus === "NONE" && !canRequestTasks && requestWaitMs > 0;
+
+    useEffect(() => {
+        if (!nextTaskRequestAt) return;
+        const timer = window.setInterval(() => setNow(Date.now()), 30000);
+        return () => window.clearInterval(timer);
+    }, [nextTaskRequestAt]);
+
+    const formatWaitTime = (ms: number) => {
+        const totalMinutes = Math.max(1, Math.ceil(ms / 60000));
+        if (totalMinutes < 60) return `${totalMinutes} min`;
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
+    };
 
     const handleGrab = async () => {
         if (busy) return;
@@ -90,6 +108,8 @@ export default function GrabPage() {
                         <p className="text-secondary text-sm">
                             {taskRequestStatus === "PENDING"
                                 ? "Your request for 25 orders is being reviewed by the admin."
+                                : isRequestCoolingDown
+                                ? `You can request new orders after ${formatWaitTime(requestWaitMs)}.`
                                 : completedOrders >= maxOrders
                                 ? `You've completed ${maxOrders}/${maxOrders}. Request a new batch whenever you're ready.`
                                 : "Request your daily 25 orders to start earning."}
@@ -97,15 +117,27 @@ export default function GrabPage() {
                     </div>
                     {taskRequestStatus === "NONE" && (
                         <button onClick={async () => {
+                            if (isRequestCoolingDown) {
+                                toast.info(`Please wait ${formatWaitTime(requestWaitMs)} before requesting new orders.`);
+                                return;
+                            }
                             try {
                                 const res = await fetch("/api/user/request-tasks", { method: "POST" });
                                 const data = await res.json();
                                 if (!res.ok) throw new Error(data?.error || "Failed to request tasks");
                                 toast.success("Task request submitted!");
                                 window.location.reload();
-                            } catch (e: any) { toast.error(e.message || "Request failed. Try again."); }
-                        }} className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer">
-                            Request 25 Orders
+                            } catch (e: unknown) {
+                                toast.error(e instanceof Error ? e.message : "Request failed. Try again.");
+                            }
+                        }}
+                            disabled={isRequestCoolingDown}
+                            className={cn(
+                                "w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer",
+                                isRequestCoolingDown && "opacity-50 cursor-not-allowed hover:scale-100"
+                            )}
+                        >
+                            {isRequestCoolingDown ? `Wait ${formatWaitTime(requestWaitMs)}` : "Request 25 Orders"}
                         </button>
                     )}
                     {taskRequestStatus === "PENDING" && (

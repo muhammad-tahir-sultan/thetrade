@@ -45,6 +45,9 @@ export function useTrading() {
         totalCommission: userQuery.data?.totalCommission || 0,
         status: userQuery.data?.status || "ACTIVE",
         taskRequestStatus: userQuery.data?.taskRequestStatus || "NONE",
+        taskRequestCooldownMinutes: Number((userQuery.data as { taskRequestCooldownMinutes?: number } | undefined)?.taskRequestCooldownMinutes || 20),
+        nextTaskRequestAt: ((userQuery.data as { nextTaskRequestAt?: string | null } | undefined)?.nextTaskRequestAt || null) as string | null,
+        canRequestTasks: Boolean((userQuery.data as { canRequestTasks?: boolean } | undefined)?.canRequestTasks ?? true),
         role: (() => {
             const apiRole = userQuery.data?.role || "USER";
             const sessionRole = (session?.user as { role?: string } | undefined)?.role;

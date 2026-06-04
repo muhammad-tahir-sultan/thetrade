@@ -35,6 +35,7 @@ export default function AdminDashboard() {
         historyTypeFilter,
         passwordRequests,
         withdrawWalletRequests,
+        taskSettings,
         setInvitationSearch,
         setInvitationRoleFilter,
         setSelectedInviterId,
@@ -48,6 +49,7 @@ export default function AdminDashboard() {
         updateCSStatus,
         approveTasks,
         cancelTaskRequest,
+        updateTaskSettings,
         updatePasswordRequest,
         updateWithdrawWalletRequest,
         isUpdating,
@@ -57,6 +59,7 @@ export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState<Tab>("TRANSACTIONS");
     const [tgUsername, setTgUsername] = useState("");
     const [savedTgUsername, setSavedTgUsername] = useState("");
+    const [taskCooldownMinutes, setTaskCooldownMinutes] = useState("20");
     const [loadingSupportContact, setLoadingSupportContact] = useState(false);
     const [savingSupportContact, setSavingSupportContact] = useState(false);
     const hasPerm = (id: string) => isSuperAdmin || adminPermissions.includes(id);
@@ -65,6 +68,10 @@ export default function AdminDashboard() {
     useEffect(() => {
         if (!userLoading && role !== "ADMIN") router.push("/dashboard");
     }, [role, userLoading, router]);
+
+    useEffect(() => {
+        setTaskCooldownMinutes(String(taskSettings?.requestCooldownMinutes ?? 20));
+    }, [taskSettings?.requestCooldownMinutes]);
 
     const handleAccept = async (id: string) => {
         try {
@@ -112,6 +119,22 @@ export default function AdminDashboard() {
         } catch (error: unknown) {
             toast.error("Failed to cancel: " + getErrorMessage(error, "Request failed"));
             return false;
+        }
+    };
+
+    const handleSaveTaskSettings = async () => {
+        const minutes = Number(taskCooldownMinutes);
+        if (!Number.isFinite(minutes) || minutes < 0) {
+            toast.error("Enter a valid cooldown time");
+            return;
+        }
+
+        try {
+            const data = await updateTaskSettings({ requestCooldownMinutes: Math.floor(minutes) });
+            setTaskCooldownMinutes(String(data?.requestCooldownMinutes ?? Math.floor(minutes)));
+            toast.success("Task cooldown updated");
+        } catch (error: unknown) {
+            toast.error("Failed to update cooldown: " + getErrorMessage(error, "Request failed"));
         }
     };
 
@@ -386,7 +409,37 @@ export default function AdminDashboard() {
                         <CSRequestList requests={csRequests} onResolve={handleResolveCS} onReject={handleRejectCS} isUpdating={isUpdating} />
                     </div>
                 ) : activeTab === "TASK_REQUESTS" ? (
-                    <TaskRequestList requests={taskRequests} onApprove={handleApproveTasks} onCancel={handleCancelTaskRequest} isUpdating={isUpdating} />
+                    <div className="space-y-5 p-4 sm:p-6">
+                        <div className="p-4 rounded-2xl border border-secondary/10 bg-secondary/5">
+                            <div className="flex flex-col md:flex-row md:items-end gap-3">
+                                <div className="flex-1">
+                                    <p className="text-[10px] font-black uppercase tracking-wider text-secondary">New orders request cooldown</p>
+                                    <p className="mt-1 text-xs text-secondary">
+                                        Users can request a new 25-order batch after this many minutes once they finish their current batch.
+                                    </p>
+                                </div>
+                                <div className="md:w-44">
+                                    <label className="text-[10px] font-black uppercase tracking-wider text-secondary">Minutes</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={taskCooldownMinutes}
+                                        onChange={(e) => setTaskCooldownMinutes(e.target.value)}
+                                        className="mt-1 w-full px-3 py-2.5 rounded-xl border border-secondary/15 bg-background text-sm font-bold outline-none focus:border-primary/40"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    disabled={isUpdating}
+                                    onClick={() => void handleSaveTaskSettings()}
+                                    className="px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold disabled:opacity-50 cursor-pointer"
+                                >
+                                    Save cooldown
+                                </button>
+                            </div>
+                        </div>
+                        <TaskRequestList requests={taskRequests} onApprove={handleApproveTasks} onCancel={handleCancelTaskRequest} isUpdating={isUpdating} />
+                    </div>
                 ) : activeTab === "INVITATIONS" ? (
                     <div className="space-y-5 p-4 sm:p-6">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">

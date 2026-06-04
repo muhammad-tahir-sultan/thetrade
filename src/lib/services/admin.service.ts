@@ -36,6 +36,16 @@ export const adminService = {
         return response.data;
     },
 
+    async getTaskSettings() {
+        const response = await apiClient.get("/admin/tasks/settings");
+        return response.data;
+    },
+
+    async updateTaskSettings(body: { requestCooldownMinutes: number }) {
+        const response = await apiClient.patch("/admin/tasks/settings", body);
+        return response.data;
+    },
+
     async cancelTaskRequest(userId: string) {
         const response = await apiClient.patch("/admin/tasks/requests", { userId });
         return response.data;

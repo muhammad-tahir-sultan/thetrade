@@ -16,6 +16,7 @@ import PasswordChangeRequest from "@/lib/models/PasswordChangeRequest";
 import Transaction from "@/lib/models/Transaction";
 import WithdrawWalletRequest from "@/lib/models/WithdrawWalletRequest";
 import { isSuperAdminEmail } from "@/lib/super-admin";
+import { taskSettingsServer } from "@/lib/services/server/task-settings.server";
 
 export async function GET() {
     try {
@@ -87,6 +88,18 @@ export async function GET() {
         const hasPendingWithdrawWalletChange = Boolean(
             await WithdrawWalletRequest.exists({ userId, status: "PENDING" })
         );
+        const taskSettings = await taskSettingsServer.getSettings();
+        const completedTasks = Number(user.dailyTasksCompleted || 0);
+        const maxTasks = Number(user.maxDailyTasks || 25);
+        const cooldownMs = taskSettings.requestCooldownMinutes * 60 * 1000;
+        const completedAt = user.lastGrabDate ? new Date(user.lastGrabDate).getTime() : 0;
+        const nextTaskRequestAt =
+            completedTasks >= maxTasks && cooldownMs > 0 && completedAt > 0
+                ? new Date(completedAt + cooldownMs).toISOString()
+                : null;
+        const canRequestTasks =
+            (user.taskRequestStatus || "NONE") === "NONE" &&
+            (completedTasks < maxTasks || !nextTaskRequestAt || Date.now() >= new Date(nextTaskRequestAt).getTime());
 
         // Return a clean object to ensure all fields are visible to frontend
         const base = user.toObject();
@@ -104,6 +117,9 @@ export async function GET() {
             hasPendingWithdraw,
             hasPendingDeposit,
             hasPendingWithdrawWalletChange,
+            taskRequestCooldownMinutes: taskSettings.requestCooldownMinutes,
+            nextTaskRequestAt,
+            canRequestTasks,
             savedWithdrawAddress: String((user as { savedWithdrawAddress?: string }).savedWithdrawAddress || "").trim(),
             savedWithdrawNetwork: String((user as { savedWithdrawNetwork?: string }).savedWithdrawNetwork || "Binance (TRC-20)").trim() || "Binance (TRC-20)",
         });
