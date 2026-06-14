@@ -148,9 +148,9 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                                         value={`${displayOrderAmount.toFixed(2)} USDT`}
                                         mono
                                     />
-                                    <StatRow label="Commission" value={`${record.commission.toFixed(4)} USDT`} mono />
+                                    <StatRow label="Commission" value={`${Number(record.commission).toFixed(2)} USDT`} mono />
                                     {isCombo && record.requiredDeposit > 0 && (
-                                        <StatRow label="Required deposit" value={`${record.requiredDeposit.toFixed(4)} USDT`} mono highlight />
+                                        <StatRow label="Required deposit" value={`${Math.max(0, orderPrice - balance).toFixed(2)} USDT`} mono highlight />
                                     )}
                                     {isCombo && (
                                         <StatRow
@@ -163,7 +163,7 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                                     <div className="flex justify-between pt-2">
                                         <span className="text-zinc-400 text-[12px] font-medium">Expected income</span>
                                         <span className="text-[15px] font-black text-amber-600 font-mono">
-                                            {getDisplayedExpectedIncome(displayOrderAmount, Number(record.commission) || 0).toFixed(4)} USDT
+                                            {getDisplayedExpectedIncome(displayOrderAmount, Number(record.commission) || 0).toFixed(2)} USDT
                                         </span>
                                     </div>
                                 </div>

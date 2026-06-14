@@ -126,9 +126,8 @@ export const grabServerService = {
         const user = await User.findById(userId);
         if (!user) throw new Error("User not found");
 
-        // Combo orders still need balance >= requiredDeposit at completion time
         if (order.isCombo && !order.isAdminAuthorized && user.balance < order.price) {
-            const short = (order.price - user.balance).toFixed(4);
+            const short = (order.price - user.balance).toFixed(2);
             throw new Error(`Balance insufficient. Deposit ${short} USDT to submit this order.`);
         }
 

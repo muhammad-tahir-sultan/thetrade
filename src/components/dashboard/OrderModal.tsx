@@ -106,12 +106,12 @@ export function OrderModal({
                             </div>
                             <div className="flex justify-between items-center text-xs sm:text-sm">
                                 <span className="text-zinc-400 font-medium">Commissions</span>
-                                <span className="text-zinc-800 dark:text-zinc-200 font-bold">{order.commission.toFixed(4)} USDT</span>
+                                <span className="text-zinc-800 dark:text-zinc-200 font-bold">{Number(order.commission).toFixed(2)} USDT</span>
                             </div>
                             <div className="flex justify-between items-center pt-3 mt-1 border-t border-black/5">
                                 <span className="text-zinc-400 font-bold text-sm">Expected income</span>
                                 <span className="text-xl font-black text-amber-600">
-                                    {displayExpectedIncome.toFixed(4)} USDT
+                                    {displayExpectedIncome.toFixed(2)} USDT
                                 </span>
                             </div>
                         </div>
@@ -147,7 +147,7 @@ export function OrderModal({
                                 <p className="text-sm font-bold leading-relaxed text-center">
                                     Your account balance is not enough, you need to recharge{" "}
                                     <span className="text-amber-400 font-black">
-                                        {requiredTopUp > 0 ? requiredTopUp.toFixed(4) : ""}
+                                        {requiredTopUp > 0 ? requiredTopUp.toFixed(2) : ""}
                                     </span>{" "}
                                     USDT to submit this order.
                                 </p>
