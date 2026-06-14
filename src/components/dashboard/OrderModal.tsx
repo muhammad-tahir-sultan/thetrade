@@ -48,11 +48,11 @@ export function OrderModal({
     const displayExpectedIncome = getDisplayedExpectedIncome(displayOrderAmount, Number(order.commission) || 0);
 
     const items = order.items ?? [];
-    const isInsufficientBalance = error?.toLowerCase().includes("balance");
+    const orderPrice = Number(order.price) || 0;
+    const needsDeposit = order.isCombo && !order.isAdminAuthorized && balance < orderPrice - 1e-6;
+    const isInsufficientBalance = needsDeposit || error?.toLowerCase().includes("balance");
 
-    // Parse required top-up from error messages like "…recharge 4295.9868 to submit…"
-    const rechargeMatch = error?.match(/recharge\s+([\d.]+)/i);
-    const requiredTopUp = rechargeMatch ? parseFloat(rechargeMatch[1]) : order.requiredDeposit ?? 0;
+    const requiredTopUp = needsDeposit ? (orderPrice - balance) : (order.requiredDeposit ?? 0);
 
     return (
         <>
@@ -121,10 +121,10 @@ export function OrderModal({
                     <div className="p-6 bg-white dark:bg-zinc-900 border-t border-black/5 space-y-3">
                         <button
                             onClick={onComplete}
-                            disabled={isProcessing || !!error}
+                            disabled={isProcessing || !!error || needsDeposit}
                             className={cn(
                                 "w-full py-4 rounded-2xl font-bold bg-[#6b5555] text-white hover:opacity-95 transition-all active:scale-[0.98] shadow-lg cursor-pointer",
-                                (isProcessing || !!error) && "opacity-40 grayscale-[0.5] cursor-not-allowed"
+                                (isProcessing || !!error || needsDeposit) && "opacity-40 grayscale-[0.5] cursor-not-allowed"
                             )}
                         >
                             {isProcessing ? "Processing..." : "Submit order"}
