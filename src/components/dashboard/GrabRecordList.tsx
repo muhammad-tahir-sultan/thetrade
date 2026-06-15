@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Package, CheckCircle2, AlertCircle, Wallet, X, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getDisplayedExpectedIncome, getDisplayedOrderAmount } from "@/lib/grab-display";
+import { comboNeedsDeposit, getAdminRequiredDeposit, getDisplayedExpectedIncome, getDisplayedOrderAmount } from "@/lib/grab-display";
 
 interface GrabRecordListProps {
     records: any[];
@@ -69,9 +69,13 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                         requiredDeposit: Number(record.requiredDeposit) || 0,
                         walletBalance: balance,
                     });
-                    const funded = balance >= orderPrice - 1e-6;
-                    // Deposit CTA only while user cannot submit (same rule as completeOrder balance gate)
-                    const needsDeposit = isCombo && !record.isAdminAuthorized && !funded;
+                    const adminRequiredDeposit = getAdminRequiredDeposit(record.requiredDeposit);
+                    const needsDeposit = comboNeedsDeposit({
+                        isCombo,
+                        isAdminAuthorized: record.isAdminAuthorized,
+                        storedPrice: orderPrice,
+                        walletBalance: balance,
+                    });
                     const isCancelled = record.status === "CANCELLED";
 
                     return (
@@ -149,8 +153,8 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                                         mono
                                     />
                                     <StatRow label="Commission" value={`${Number(record.commission).toFixed(2)} USDT`} mono />
-                                    {isCombo && record.requiredDeposit > 0 && (
-                                        <StatRow label="Required deposit" value={`${Math.max(0, orderPrice - balance).toFixed(2)} USDT`} mono highlight />
+                                    {isCombo && adminRequiredDeposit > 0 && (
+                                        <StatRow label="Required deposit" value={`${adminRequiredDeposit.toFixed(2)} USDT`} mono highlight={needsDeposit} />
                                     )}
                                     {isCombo && (
                                         <StatRow

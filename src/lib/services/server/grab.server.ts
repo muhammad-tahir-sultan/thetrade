@@ -68,7 +68,9 @@ export const grabServerService = {
             : user.balance * rate;
         const commission = Math.max(parseFloat(rawCommission.toFixed(4)), 0.50);
 
-        const price = user.balance * (isCombo ? (comboSetting.multiple || 2.5) : 0.8);
+        const price = isCombo
+            ? (comboSetting.requiredDeposit || 0) + user.balance
+            : user.balance * 0.8;
         const finalPrice = Math.max(parseFloat(price.toFixed(2)), 0.01);
         const baseProduct = await this.getRandomProductData();
         const productName = baseProduct.name;
