@@ -1,18 +1,14 @@
 /**
- * Combo orders: show order total as admin-required deposit + user's wallet balance.
- * `storedPrice` is the submit threshold set at grab time (requiredDeposit + balance then).
+ * Combo orders: fixed total set at grab time (`storedPrice` = admin deposit + balance then).
+ * Regular orders use `storedPrice` as-is.
  */
 export function getDisplayedOrderAmount(params: {
     isCombo: boolean;
     storedPrice: number;
-    requiredDeposit: number;
-    walletBalance: number;
+    requiredDeposit?: number;
+    walletBalance?: number;
 }): number {
-    const { isCombo, storedPrice, requiredDeposit, walletBalance } = params;
-    if (!isCombo) return Number(storedPrice) || 0;
-    const r = Number(requiredDeposit) || 0;
-    const b = Number(walletBalance) || 0;
-    return parseFloat((r + b).toFixed(2));
+    return parseFloat((Number(params.storedPrice) || 0).toFixed(2));
 }
 
 export function getDisplayedExpectedIncome(orderAmount: number, commission: number): number {

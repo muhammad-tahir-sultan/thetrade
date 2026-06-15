@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Info, ArrowLeft, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useGrabOrder } from "@/hooks/useGrabOrder";
+import { getComboTopUpAmount } from "@/lib/grab-display";
 import { useTrading } from "@/hooks/useTrading";
 import { GrabRecordList } from "@/components/dashboard/GrabRecordList";
 import { OrderModal } from "@/components/dashboard/OrderModal";
@@ -20,7 +21,7 @@ export default function GrabRecordsPage() {
     const handleDepositForOrder = async (amount: number, depositAddress: string) => {
         await createTransaction({ type: "DEPOSIT", amount, depositAddress });
         setDepositOrder(null);
-        await refresh();
+        await Promise.all([refresh(), refetchRecords()]);
     };
 
     useEffect(() => {
@@ -32,6 +33,18 @@ export default function GrabRecordsPage() {
         document.addEventListener("visibilitychange", onVis);
         return () => document.removeEventListener("visibilitychange", onVis);
     }, [refetchRecords, refresh]);
+
+    useEffect(() => {
+        if (!selectedOrder?._id || !records?.length) return;
+        const fresh = records.find((r: { _id: string }) => r._id === selectedOrder._id);
+        if (
+            fresh &&
+            (fresh.isAdminAuthorized !== selectedOrder.isAdminAuthorized ||
+                fresh.status !== selectedOrder.status)
+        ) {
+            setSelectedOrder(fresh);
+        }
+    }, [records, selectedOrder]);
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-lg mx-auto pb-24 px-4 overflow-x-hidden">
@@ -114,7 +127,11 @@ export default function GrabRecordsPage() {
             <DepositModal
                 isOpen={!!depositOrder}
                 onClose={() => setDepositOrder(null)}
-                requiredAmount={depositOrder?.requiredDeposit ?? undefined}
+                requiredAmount={
+                    depositOrder
+                        ? getComboTopUpAmount(Number(depositOrder.price) || 0, balance)
+                        : undefined
+                }
                 hasPendingDeposit={hasPendingDeposit}
                 onSubmitPending={handleDepositForOrder}
                 isPending={isProcessing}

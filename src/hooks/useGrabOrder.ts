@@ -9,6 +9,9 @@ export function useGrabOrder() {
 
     const grabMutation = useMutation({
         mutationFn: grabService.grabOrder,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["grab-records"] });
+        },
         onError: (error: any) => {
             toast.error(error.message || "Failed to grab order");
         },
@@ -52,9 +55,15 @@ export function useGrabOrder() {
     const { data: records, isLoading: isLoadingRecords, refetch: refetchRecords } = useQuery({
         queryKey: ["grab-records"],
         queryFn: grabService.getRecords,
-        // Global default staleTime is 60s — grab list must reflect admin actions quickly
         staleTime: 0,
         refetchOnWindowFocus: true,
+        refetchInterval: (query) => {
+            const list = query.state.data as Array<{ status?: string; isCombo?: boolean; isAdminAuthorized?: boolean }> | undefined;
+            const hasOpenCombo = list?.some(
+                (r) => r.status === "PENDING" && r.isCombo && !r.isAdminAuthorized
+            );
+            return hasOpenCombo ? 5000 : false;
+        },
     });
 
     return {

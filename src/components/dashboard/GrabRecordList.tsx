@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Package, CheckCircle2, AlertCircle, Wallet, X, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { comboNeedsDeposit, getAdminRequiredDeposit, getDisplayedExpectedIncome, getDisplayedOrderAmount } from "@/lib/grab-display";
+import { comboNeedsDeposit, getComboTopUpAmount, getDisplayedExpectedIncome, getDisplayedOrderAmount } from "@/lib/grab-display";
 
 interface GrabRecordListProps {
     records: any[];
@@ -66,10 +66,8 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                     const displayOrderAmount = getDisplayedOrderAmount({
                         isCombo,
                         storedPrice: orderPrice,
-                        requiredDeposit: Number(record.requiredDeposit) || 0,
-                        walletBalance: balance,
                     });
-                    const adminRequiredDeposit = getAdminRequiredDeposit(record.requiredDeposit);
+                    const requiredTopUp = getComboTopUpAmount(orderPrice, balance);
                     const needsDeposit = comboNeedsDeposit({
                         isCombo,
                         isAdminAuthorized: record.isAdminAuthorized,
@@ -153,8 +151,8 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                                         mono
                                     />
                                     <StatRow label="Commission" value={`${Number(record.commission).toFixed(2)} USDT`} mono />
-                                    {isCombo && adminRequiredDeposit > 0 && (
-                                        <StatRow label="Required deposit" value={`${adminRequiredDeposit.toFixed(2)} USDT`} mono highlight={needsDeposit} />
+                                    {isCombo && needsDeposit && (
+                                        <StatRow label="Remaining deposit" value={`${requiredTopUp.toFixed(2)} USDT`} mono highlight />
                                     )}
                                     {isCombo && (
                                         <StatRow

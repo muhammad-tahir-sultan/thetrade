@@ -9,13 +9,25 @@ export function useTrading() {
     const queryClient = useQueryClient();
     const { data: session } = useSession();
 
-    // Fetch User Data with caching
+    // Fetch User Data — poll while deposits/withdrawals/combos are in flight
     const userQuery = useQuery({
         queryKey: ["user-me"],
         queryFn: transactionService.getCurrentUser,
-        staleTime: 30 * 1000,
+        staleTime: 0,
         refetchOnWindowFocus: true,
         refetchOnMount: true,
+        refetchInterval: (query) => {
+            const data = query.state.data as {
+                hasPendingDeposit?: boolean;
+                hasPendingWithdraw?: boolean;
+                status?: string;
+            } | undefined;
+            if (!data) return false;
+            if (data.hasPendingDeposit || data.hasPendingWithdraw || data.status === "PENDING_COMBO") {
+                return 5000;
+            }
+            return 15000;
+        },
     });
 
     // Fetch Transactions with caching
@@ -33,6 +45,7 @@ export function useTrading() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["user-me"] });
             queryClient.invalidateQueries({ queryKey: ["transactions"] });
+            queryClient.invalidateQueries({ queryKey: ["grab-records"] });
         },
     });
 

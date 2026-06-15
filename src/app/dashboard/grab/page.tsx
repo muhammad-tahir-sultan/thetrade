@@ -16,7 +16,7 @@ import { grabService } from "@/lib/services/grab.service";
 
 export default function GrabPage() {
     const { user, balance, dailyTasksCompleted, maxDailyTasks, taskRequestStatus, hasPendingDeposit, createTransaction, isProcessing, nextTaskRequestAt, canRequestTasks } = useTrading();
-    const { grabOrder, completeOrder, requestCS, isGrabbing, isCompleting, currentOrder } = useGrabOrder();
+    const { grabOrder, completeOrder, requestCS, isGrabbing, isCompleting, currentOrder: grabbedOrder, records } = useGrabOrder();
 
     const [isSpinning, setIsSpinning] = useState(false);
     const [showModal, setShowModal] = useState(false);
@@ -29,6 +29,10 @@ export default function GrabPage() {
     const spinnerProducts = spinnerProductsQuery.data || [];
 
     const busy = isSpinning || isGrabbing;
+    const freshOrder = grabbedOrder?._id
+        ? records.find((r: { _id: string }) => r._id === grabbedOrder._id)
+        : null;
+    const currentOrder = freshOrder || grabbedOrder;
     const maxOrders = Number(maxDailyTasks || 25);
     const completedOrders = Number(dailyTasksCompleted || 0);
     const [now, setNow] = useState(Date.now());

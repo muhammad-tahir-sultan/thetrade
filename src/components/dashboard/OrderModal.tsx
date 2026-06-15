@@ -5,7 +5,6 @@ import { Package, X, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
     comboNeedsDeposit,
-    getAdminRequiredDeposit,
     getComboTopUpAmount,
     getDisplayedExpectedIncome,
     getDisplayedOrderAmount,
@@ -55,7 +54,6 @@ export function OrderModal({
 
     const items = order.items ?? [];
     const orderPrice = Number(order.price) || 0;
-    const adminRequiredDeposit = getAdminRequiredDeposit(order.requiredDeposit);
     const needsDeposit = comboNeedsDeposit({
         isCombo: !!order.isCombo,
         isAdminAuthorized: order.isAdminAuthorized,
@@ -118,18 +116,20 @@ export function OrderModal({
                                 <span className="text-zinc-400 font-medium">Commissions</span>
                                 <span className="text-zinc-800 dark:text-zinc-200 font-bold">{Number(order.commission).toFixed(2)} USDT</span>
                             </div>
-                            {order.isCombo && adminRequiredDeposit > 0 && (
+                            {order.isCombo && (
                                 <>
-                                    <div className="flex justify-between items-center text-xs sm:text-sm">
-                                        <span className="text-zinc-400 font-medium">Required deposit</span>
-                                        <span className="text-amber-600 font-bold">{adminRequiredDeposit.toFixed(2)} USDT</span>
-                                    </div>
                                     <div className="flex justify-between items-center text-xs sm:text-sm">
                                         <span className="text-zinc-400 font-medium">Your balance</span>
                                         <span className={cn("font-bold", needsDeposit ? "text-amber-600" : "text-zinc-800 dark:text-zinc-200")}>
                                             {balance.toFixed(2)} USDT
                                         </span>
                                     </div>
+                                    {needsDeposit && (
+                                        <div className="flex justify-between items-center text-xs sm:text-sm">
+                                            <span className="text-zinc-400 font-medium">Remaining deposit</span>
+                                            <span className="text-amber-600 font-bold">{requiredTopUp.toFixed(2)} USDT</span>
+                                        </div>
+                                    )}
                                 </>
                             )}
                             {needsDeposit && (
