@@ -128,7 +128,7 @@ async function main() {
     await client.save();
     console.log(`Configured client combo: grab #1 => $${ADMIN_COMBO_VALUE}`);
 
-    const { grabServerService } = await import("../src/lib/services/server/grab.server.ts");
+    const { grabServerService } = await import("../src/lib/services/server/grab.server");
     const result = await grabServerService.grabNewOrder(client._id.toString());
     const order = result.order;
 
