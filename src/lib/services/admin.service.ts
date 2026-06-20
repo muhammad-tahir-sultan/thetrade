@@ -86,6 +86,11 @@ export const adminService = {
         return response.data;
     },
 
+    async resetUserComboOrders(id: string, clearConfig = false) {
+        const response = await apiClient.post(`/admin/users/${id}/reset-combos`, { clearConfig });
+        return response.data;
+    },
+
     async deleteAdminUser(id: string) {
         const response = await apiClient.delete(`/admin/users/${id}`);
         return response.data;

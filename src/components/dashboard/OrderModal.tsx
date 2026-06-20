@@ -5,6 +5,7 @@ import { Package, X, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
     comboNeedsDeposit,
+    getComboAdminAmount,
     getComboTopUpAmount,
     getDisplayedExpectedIncome,
     getDisplayedOrderAmount,
@@ -54,8 +55,12 @@ export function OrderModal({
 
     const items = order.items ?? [];
     const orderPrice = Number(order.price) || 0;
-    const adminDeposit = Number(order.requiredDeposit) || 0;
-    const comboThreshold = order.isCombo ? adminDeposit : orderPrice;
+    const adminDeposit = Number(order.requiredDeposit ?? NaN);
+    const comboThreshold = getComboAdminAmount({
+        isCombo: !!order.isCombo,
+        requiredDeposit: Number.isFinite(adminDeposit) ? adminDeposit : null,
+        storedPrice: orderPrice,
+    });
     const needsDeposit = comboNeedsDeposit({
         isCombo: !!order.isCombo,
         isAdminAuthorized: order.isAdminAuthorized,

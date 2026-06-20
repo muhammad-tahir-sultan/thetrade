@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { Package, CheckCircle2, AlertCircle, Wallet, X, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { comboNeedsDeposit, getComboTopUpAmount, getDisplayedExpectedIncome, getDisplayedOrderAmount } from "@/lib/grab-display";
+import {
+    comboNeedsDeposit,
+    getComboAdminAmount,
+    getComboTopUpAmount,
+    getDisplayedExpectedIncome,
+    getDisplayedOrderAmount,
+} from "@/lib/grab-display";
 
 interface GrabRecordListProps {
     records: any[];
@@ -69,7 +75,11 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                         storedPrice: orderPrice,
                         requiredDeposit: adminDeposit,
                     });
-                    const comboThreshold = isCombo ? adminDeposit : orderPrice;
+                    const comboThreshold = getComboAdminAmount({
+                        isCombo,
+                        requiredDeposit: record.requiredDeposit,
+                        storedPrice: orderPrice,
+                    });
                     const requiredTopUp = getComboTopUpAmount(comboThreshold, balance);
                     const needsDeposit = comboNeedsDeposit({
                         isCombo,

@@ -1,18 +1,34 @@
+/** Admin-set combo amount (0 is valid — do not fall back to storedPrice). */
+export function getComboAdminAmount(params: {
+    isCombo: boolean;
+    requiredDeposit?: number | null;
+    storedPrice?: number;
+}): number {
+    if (!params.isCombo) {
+        return Math.max(0, Number(params.storedPrice) || 0);
+    }
+    if (params.requiredDeposit !== undefined && params.requiredDeposit !== null) {
+        const parsed = Number(params.requiredDeposit);
+        if (Number.isFinite(parsed)) return Math.max(0, parseFloat(parsed.toFixed(2)));
+    }
+    return Math.max(0, Number(params.storedPrice) || 0);
+}
+
 /**
- * Combo orders show the admin-configured required deposit exactly.
+ * Combo orders show the admin-configured required deposit exactly (including 0).
  * Regular orders use `storedPrice` as-is.
  */
 export function getDisplayedOrderAmount(params: {
     isCombo: boolean;
     storedPrice: number;
-    requiredDeposit?: number;
+    requiredDeposit?: number | null;
     walletBalance?: number;
 }): number {
-    if (params.isCombo) {
-        const adminValue = Math.max(0, Number(params.requiredDeposit) || 0);
-        if (adminValue > 0) return parseFloat(adminValue.toFixed(2));
-    }
-    return parseFloat((Number(params.storedPrice) || 0).toFixed(2));
+    return getComboAdminAmount({
+        isCombo: params.isCombo,
+        requiredDeposit: params.requiredDeposit,
+        storedPrice: params.storedPrice,
+    });
 }
 
 export function getDisplayedExpectedIncome(orderAmount: number, commission: number): number {
@@ -36,11 +52,12 @@ export function comboNeedsDeposit(params: {
     isCombo: boolean;
     isAdminAuthorized?: boolean;
     storedPrice: number;
-    requiredDeposit?: number;
+    requiredDeposit?: number | null;
     walletBalance: number;
 }): boolean {
     const { isCombo, isAdminAuthorized, storedPrice, requiredDeposit, walletBalance } = params;
     if (!isCombo || isAdminAuthorized) return false;
-    const threshold = Math.max(0, Number(requiredDeposit) || Number(storedPrice) || 0);
+    const threshold = getComboAdminAmount({ isCombo: true, requiredDeposit, storedPrice });
+    if (threshold <= 1e-6) return false;
     return getComboTopUpAmount(threshold, walletBalance) > 1e-6;
 }

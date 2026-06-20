@@ -98,6 +98,17 @@ export function UserManagement() {
         onError: (e: Error) => toast.error(e.message),
     });
 
+    const resetCombosMutation = useMutation({
+        mutationFn: ({ userId, clearConfig }: { userId: string; clearConfig: boolean }) =>
+            adminService.resetUserComboOrders(userId, clearConfig),
+        onSuccess: async (data: any, vars) => {
+            await qc.invalidateQueries({ queryKey: ["admin-users"] });
+            await qc.invalidateQueries({ queryKey: ["admin-user", vars.userId] });
+            toast.success(data?.message || "Combo orders reset");
+        },
+        onError: (e: Error) => toast.error(e.message),
+    });
+
     const copyText = async (label: string, text: string) => {
         try {
             await navigator.clipboard.writeText(text);
@@ -324,6 +335,37 @@ export function UserManagement() {
                                                 <KeyRound size={18} />
                                             </button>
                                         </div>
+                                    </div>
+
+                                    <div className="flex flex-col gap-3">
+                                        <button
+                                            className="w-full py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold text-sm hover:bg-amber-500/20 cursor-pointer disabled:opacity-50"
+                                            disabled={resetCombosMutation.isPending}
+                                            onClick={() => {
+                                                if (!detailQuery.data?._id) return;
+                                                if (!window.confirm("Cancel all pending combo orders for this user and unlock their account?")) return;
+                                                resetCombosMutation.mutate({
+                                                    userId: String(detailQuery.data._id),
+                                                    clearConfig: false,
+                                                });
+                                            }}
+                                        >
+                                            {resetCombosMutation.isPending ? "Resetting…" : "Reset pending combo orders"}
+                                        </button>
+                                        <button
+                                            className="w-full py-3 rounded-2xl border border-red-500/20 bg-red-500/5 text-red-500 font-bold text-sm hover:bg-red-500/10 cursor-pointer disabled:opacity-50"
+                                            disabled={resetCombosMutation.isPending}
+                                            onClick={() => {
+                                                if (!detailQuery.data?._id) return;
+                                                if (!window.confirm("Remove all pending combo orders AND clear combo configuration for this user?")) return;
+                                                resetCombosMutation.mutate({
+                                                    userId: String(detailQuery.data._id),
+                                                    clearConfig: true,
+                                                });
+                                            }}
+                                        >
+                                            Reset combo orders + clear config
+                                        </button>
                                     </div>
 
                                     <div className="flex gap-3">

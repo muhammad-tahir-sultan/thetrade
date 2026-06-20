@@ -6,12 +6,15 @@ import Transaction from "@/lib/models/Transaction";
 import GrabOrder from "@/lib/models/GrabOrder";
 import CSRequest from "@/lib/models/CSRequest";
 import DepositAddress from "@/lib/models/DepositAddress";
+import PasswordChangeRequest from "@/lib/models/PasswordChangeRequest";
+import WithdrawWalletRequest from "@/lib/models/WithdrawWalletRequest";
 import dbConnect from "@/lib/mongodb";
 import { generateUniqueInviteCode } from "@/lib/invitation";
 import {
     assertAdminPermission,
     resolveAdminAccessForUserId,
 } from "@/lib/services/server/admin-auth.server";
+import { grabServerService } from "@/lib/services/server/grab.server";
 
 function toPublicUser(doc: any) {
     const o = doc.toObject ? doc.toObject() : { ...doc };
@@ -244,6 +247,27 @@ export const adminUsersServer = {
             .populate("staffRole", "name permissions");
         const pub = populated ? toPublicUser(populated) : toPublicUser(user);
         return { user: pub, plainPasswordEcho };
+    },
+
+    async resetComboOrders(
+        id: string,
+        adminUserId: string,
+        options?: { clearConfig?: boolean }
+    ) {
+        await assertAdminPermission(adminUserId, "MANAGE_USERS");
+        await dbConnect();
+
+        const user = await User.findById(id);
+        if (!user) throw new Error("User not found");
+
+        const { cancelledCount } = await grabServerService.resetUserComboOrders(id);
+
+        if (options?.clearConfig) {
+            user.comboConfig = [];
+            await user.save();
+        }
+
+        return { cancelledCount, clearConfig: !!options?.clearConfig };
     },
 
     async deleteUser(id: string, adminUserId: string) {

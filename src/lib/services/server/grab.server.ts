@@ -71,7 +71,11 @@ export const grabServerService = {
         const rawCommission = isCombo
             ? adminRequiredDeposit * 0.30
             : user.balance * rate;
-        const commission = Math.max(parseFloat(rawCommission.toFixed(4)), 0.50);
+        const commission = isCombo
+            ? (adminRequiredDeposit > 0
+                ? Math.max(parseFloat(rawCommission.toFixed(4)), 0.50)
+                : 0)
+            : Math.max(parseFloat(rawCommission.toFixed(4)), 0.50);
 
         const price = isCombo ? adminRequiredDeposit : user.balance * 0.8;
         const finalPrice = isCombo
@@ -125,9 +129,12 @@ export const grabServerService = {
         const user = await User.findById(userId);
         if (!user) throw new Error("User not found");
 
-        if (order.isCombo && !order.isAdminAuthorized && user.balance < order.price) {
-            const short = (order.price - user.balance).toFixed(2);
-            throw new Error(`Balance insufficient. Deposit ${short} USDT to submit this order.`);
+        if (order.isCombo && !order.isAdminAuthorized) {
+            const threshold = Math.max(0, Number(order.requiredDeposit ?? order.price) || 0);
+            if (threshold > 0 && user.balance < threshold - 1e-6) {
+                const short = (threshold - user.balance).toFixed(2);
+                throw new Error(`Balance insufficient. Deposit ${short} USDT to submit this order.`);
+            }
         }
 
         if (typeof user.dailyTasksCompleted !== "number") user.dailyTasksCompleted = 0;
@@ -165,14 +172,38 @@ export const grabServerService = {
         order.status = "CANCELLED";
         await order.save();
 
-        // Reset user combo status if needed
         const user = await User.findById(userId);
         if (user && user.status === "PENDING_COMBO") {
+            const stillPending = await GrabOrder.exists({
+                userId,
+                status: "PENDING",
+                isCombo: true,
+            });
+            if (!stillPending) {
+                user.status = "ACTIVE";
+                await user.save();
+            }
+        }
+
+        return { success: true };
+    },
+
+    async resetUserComboOrders(userId: string) {
+        await dbConnect();
+        const user = await User.findById(userId);
+        if (!user) throw new Error("User not found");
+
+        const result = await GrabOrder.updateMany(
+            { userId, isCombo: true, status: "PENDING" },
+            { $set: { status: "CANCELLED" } }
+        );
+
+        if (user.status === "PENDING_COMBO") {
             user.status = "ACTIVE";
             await user.save();
         }
 
-        return { success: true };
+        return { cancelledCount: result.modifiedCount };
     },
 
 };
