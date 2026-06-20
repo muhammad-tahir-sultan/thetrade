@@ -91,6 +91,11 @@ export const adminService = {
         return response.data;
     },
 
+    async resetUserAccount(id: string) {
+        const response = await apiClient.post(`/admin/users/${id}/reset-account`);
+        return response.data;
+    },
+
     async deleteAdminUser(id: string) {
         const response = await apiClient.delete(`/admin/users/${id}`);
         return response.data;

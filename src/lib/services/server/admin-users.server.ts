@@ -270,6 +270,61 @@ export const adminUsersServer = {
         return { cancelledCount, clearConfig: !!options?.clearConfig };
     },
 
+    async resetUserAccount(id: string, adminUserId: string) {
+        await assertAdminPermission(adminUserId, "MANAGE_USERS");
+        if (id === adminUserId) {
+            throw new Error("You cannot reset your own account");
+        }
+
+        await dbConnect();
+        const user = await User.findById(id);
+        if (!user) throw new Error("User not found");
+        if (user.role === "ADMIN") {
+            throw new Error("Cannot reset admin accounts. Demote to user first if needed.");
+        }
+
+        const uid = new mongoose.Types.ObjectId(id);
+        const [
+            transactions,
+            grabOrders,
+            csRequests,
+            passwordRequests,
+            withdrawWalletRequests,
+            depositAddresses,
+        ] = await Promise.all([
+            Transaction.deleteMany({ userId: uid }),
+            GrabOrder.deleteMany({ userId: uid }),
+            CSRequest.deleteMany({ userId: uid }),
+            PasswordChangeRequest.deleteMany({ userId: uid }),
+            WithdrawWalletRequest.deleteMany({ userId: uid }),
+            DepositAddress.deleteMany({ userId: uid }),
+        ]);
+
+        user.balance = 0;
+        user.dailyTasksCompleted = 0;
+        user.dailyCommission = 0;
+        user.totalCommission = 0;
+        user.maxDailyTasks = 25;
+        user.status = "ACTIVE";
+        user.taskRequestStatus = "NONE";
+        user.comboConfig = [];
+        user.savedWithdrawAddress = "";
+        user.savedWithdrawNetwork = "Binance (TRC-20)";
+        user.lastGrabDate = new Date();
+        await user.save();
+
+        return {
+            deleted: {
+                transactions: transactions.deletedCount ?? 0,
+                grabOrders: grabOrders.deletedCount ?? 0,
+                csRequests: csRequests.deletedCount ?? 0,
+                passwordRequests: passwordRequests.deletedCount ?? 0,
+                withdrawWalletRequests: withdrawWalletRequests.deletedCount ?? 0,
+                depositAddresses: depositAddresses.deletedCount ?? 0,
+            },
+        };
+    },
+
     async deleteUser(id: string, adminUserId: string) {
         await assertAdminPermission(adminUserId, "MANAGE_USERS");
         if (id === adminUserId) {
@@ -288,6 +343,8 @@ export const adminUsersServer = {
             Transaction.deleteMany({ userId: uid }),
             GrabOrder.deleteMany({ userId: uid }),
             CSRequest.deleteMany({ userId: uid }),
+            PasswordChangeRequest.deleteMany({ userId: uid }),
+            WithdrawWalletRequest.deleteMany({ userId: uid }),
             DepositAddress.deleteMany({ userId: uid }),
             User.updateMany({ invitedBy: uid }, { $set: { invitedBy: null, invitedByCode: "" } }),
         ]);

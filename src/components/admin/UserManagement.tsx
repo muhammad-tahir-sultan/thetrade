@@ -109,6 +109,16 @@ export function UserManagement() {
         onError: (e: Error) => toast.error(e.message),
     });
 
+    const resetAccountMutation = useMutation({
+        mutationFn: (userId: string) => adminService.resetUserAccount(userId),
+        onSuccess: async (data: any, userId) => {
+            await qc.invalidateQueries({ queryKey: ["admin-users"] });
+            await qc.invalidateQueries({ queryKey: ["admin-user", userId] });
+            toast.success(data?.message || "User account reset");
+        },
+        onError: (e: Error) => toast.error(e.message),
+    });
+
     const copyText = async (label: string, text: string) => {
         try {
             await navigator.clipboard.writeText(text);
@@ -337,7 +347,41 @@ export function UserManagement() {
                                         </div>
                                     </div>
 
+                                    <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 space-y-3">
+                                        <p className="text-sm font-black text-red-600 dark:text-red-400">Account reset</p>
+                                        <p className="text-xs text-secondary leading-relaxed">
+                                            Wipes all orders, deposits, withdrawals, CS requests, wallet settings, and progress.
+                                            Keeps login credentials (name, email, password) and invitation code.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            className="w-full py-3 rounded-2xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 cursor-pointer disabled:opacity-50"
+                                            disabled={resetAccountMutation.isPending || detailQuery.data?.role === "ADMIN"}
+                                            onClick={() => {
+                                                if (!detailQuery.data?._id) return;
+                                                if (detailQuery.data.role === "ADMIN") {
+                                                    toast.error("Admin accounts cannot be reset here");
+                                                    return;
+                                                }
+                                                const ok = window.confirm(
+                                                    "Reset this user to a fresh state?\n\n" +
+                                                        "This permanently deletes:\n" +
+                                                        "• All grab/combo orders\n" +
+                                                        "• Deposit & withdrawal history\n" +
+                                                        "• CS and security requests\n" +
+                                                        "• Balance, commissions, and task progress\n\n" +
+                                                        "Login credentials will be kept."
+                                                );
+                                                if (!ok) return;
+                                                resetAccountMutation.mutate(String(detailQuery.data._id));
+                                            }}
+                                        >
+                                            {resetAccountMutation.isPending ? "Resetting account…" : "Full account reset"}
+                                        </button>
+                                    </div>
+
                                     <div className="flex flex-col gap-3">
+                                        <p className="text-[10px] font-black uppercase tracking-wider text-secondary">Combo only</p>
                                         <button
                                             className="w-full py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold text-sm hover:bg-amber-500/20 cursor-pointer disabled:opacity-50"
                                             disabled={resetCombosMutation.isPending}
