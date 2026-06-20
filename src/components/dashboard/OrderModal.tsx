@@ -54,13 +54,16 @@ export function OrderModal({
 
     const items = order.items ?? [];
     const orderPrice = Number(order.price) || 0;
+    const adminDeposit = Number(order.requiredDeposit) || 0;
+    const comboThreshold = order.isCombo ? adminDeposit : orderPrice;
     const needsDeposit = comboNeedsDeposit({
         isCombo: !!order.isCombo,
         isAdminAuthorized: order.isAdminAuthorized,
         storedPrice: orderPrice,
+        requiredDeposit: adminDeposit,
         walletBalance: balance,
     });
-    const requiredTopUp = getComboTopUpAmount(orderPrice, balance);
+    const requiredTopUp = getComboTopUpAmount(comboThreshold, balance);
 
     return (
         <>

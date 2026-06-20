@@ -63,15 +63,19 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                 ) : filteredRecords.map((record) => {
                     const isCombo = record.isCombo;
                     const orderPrice = Number(record.price) || 0;
+                    const adminDeposit = Number(record.requiredDeposit) || 0;
                     const displayOrderAmount = getDisplayedOrderAmount({
                         isCombo,
                         storedPrice: orderPrice,
+                        requiredDeposit: adminDeposit,
                     });
-                    const requiredTopUp = getComboTopUpAmount(orderPrice, balance);
+                    const comboThreshold = isCombo ? adminDeposit : orderPrice;
+                    const requiredTopUp = getComboTopUpAmount(comboThreshold, balance);
                     const needsDeposit = comboNeedsDeposit({
                         isCombo,
                         isAdminAuthorized: record.isAdminAuthorized,
                         storedPrice: orderPrice,
+                        requiredDeposit: adminDeposit,
                         walletBalance: balance,
                     });
                     const isCancelled = record.status === "CANCELLED";

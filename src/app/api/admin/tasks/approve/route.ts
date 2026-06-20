@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
 import { assertAdminPermission } from "@/lib/services/server/admin-auth.server";
+import { normalizeComboConfig } from "@/lib/combo-config";
 
 export async function POST(req: Request) {
     try {
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
         }
 
         user.taskRequestStatus = "APPROVED";
-        user.comboConfig = comboConfig || [];
+        user.comboConfig = normalizeComboConfig(comboConfig);
         // Reset progress so the user starts a fresh batch of tasks
         user.dailyTasksCompleted = 0;
         user.dailyCommission = 0;

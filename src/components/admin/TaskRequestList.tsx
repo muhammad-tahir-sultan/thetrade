@@ -40,7 +40,8 @@ export function TaskRequestList({ requests, onApprove, onCancel, isUpdating }: T
 
     const updateCombo = (idx: number, field: string, value: number) => {
         const newConfigs = [...comboConfigs];
-        newConfigs[idx][field] = value;
+        const safeValue = Number.isFinite(value) ? value : 0;
+        newConfigs[idx][field] = safeValue;
         setComboConfigs(newConfigs);
     };
 

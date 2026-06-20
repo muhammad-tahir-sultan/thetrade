@@ -13,8 +13,8 @@ async function authorizeComboAfterDeposit(userId: string, balanceAfter: number) 
         isAdminAuthorized: false,
     });
     for (const o of pendingCombos) {
-        const orderPrice = Number(o.price) || 0;
-        if (orderPrice > 0 && balanceAfter >= orderPrice - 1e-6) {
+        const requiredDeposit = Math.max(0, Number(o.requiredDeposit) || Number(o.price) || 0);
+        if (requiredDeposit > 0 && balanceAfter >= requiredDeposit - 1e-6) {
             o.isAdminAuthorized = true;
             await o.save();
         }

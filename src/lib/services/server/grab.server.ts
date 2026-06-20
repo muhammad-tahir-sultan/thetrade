@@ -2,6 +2,7 @@ import User from "@/lib/models/User";
 import GrabOrder from "@/lib/models/GrabOrder";
 import Product from "@/lib/models/Product";
 import dbConnect from "@/lib/mongodb";
+import { findComboSetting, normalizeComboConfig } from "@/lib/combo-config";
 
 // Progressive commission rate: starts at 1%, grows ~4% per order (order 1→25 yields 1%→2.6%)
 function getCommissionRate(orderIndex: number): number {
@@ -58,39 +59,35 @@ export const grabServerService = {
 
         // ── Build new order ──
         const nextGrabIndex = user.dailyTasksCompleted + 1;
-        const comboSetting = user.comboConfig?.find((c: any) => c.grabIndex === nextGrabIndex);
+        const comboConfig = normalizeComboConfig(user.comboConfig);
+        const comboSetting = findComboSetting(comboConfig, nextGrabIndex);
         const isCombo = !!comboSetting;
+        const adminRequiredDeposit = isCombo
+            ? Math.max(0, parseFloat((Number(comboSetting.requiredDeposit) || 0).toFixed(2)))
+            : 0;
 
         // [2] Progressive commission — floor ensures minimum regardless of balance
         const rate = getCommissionRate(nextGrabIndex);
         const rawCommission = isCombo
-            ? (comboSetting.requiredDeposit || user.balance) * 0.30   // 30% for combo
+            ? adminRequiredDeposit * 0.30
             : user.balance * rate;
         const commission = Math.max(parseFloat(rawCommission.toFixed(4)), 0.50);
 
-        const price = isCombo
-            ? (comboSetting.requiredDeposit || 0) + user.balance
-            : user.balance * 0.8;
-        const finalPrice = Math.max(parseFloat(price.toFixed(2)), 0.01);
+        const price = isCombo ? adminRequiredDeposit : user.balance * 0.8;
+        const finalPrice = isCombo
+            ? parseFloat(adminRequiredDeposit.toFixed(2))
+            : Math.max(parseFloat(price.toFixed(2)), 0.01);
         const baseProduct = await this.getRandomProductData();
         const productName = baseProduct.name;
 
         const items = [];
         if (isCombo) {
-            const numItems = Math.floor(Math.random() * 3) + 3;
-            let remaining = finalPrice;
-            for (let i = 0; i < numItems; i++) {
-                const itemPrice = i === numItems - 1 ? remaining : parseFloat((Math.random() * (remaining / 2)).toFixed(2));
-                const randomProduct = await this.getRandomProductData();
-                items.push({
-                    name: randomProduct.name,
-                    image: randomProduct.image,
-                    price: itemPrice,
-                    quantity: Math.floor(Math.random() * 500) + 1,
-                });
-                remaining -= itemPrice;
-                if (remaining <= 0) break;
-            }
+            items.push({
+                name: "Combine Order",
+                image: baseProduct.image,
+                price: finalPrice,
+                quantity: 1,
+            });
         } else {
             items.push({
                 name: productName,
@@ -107,7 +104,7 @@ export const grabServerService = {
             price: finalPrice,
             commission,
             isCombo,
-            requiredDeposit: comboSetting?.requiredDeposit || 0,
+            requiredDeposit: adminRequiredDeposit,
             status: "PENDING",
         });
 

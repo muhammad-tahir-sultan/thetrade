@@ -129,7 +129,10 @@ export default function GrabRecordsPage() {
                 onClose={() => setDepositOrder(null)}
                 requiredAmount={
                     depositOrder
-                        ? getComboTopUpAmount(Number(depositOrder.price) || 0, balance)
+                        ? getComboTopUpAmount(
+                            Number(depositOrder.requiredDeposit) || Number(depositOrder.price) || 0,
+                            balance
+                        )
                         : undefined
                 }
                 hasPendingDeposit={hasPendingDeposit}
