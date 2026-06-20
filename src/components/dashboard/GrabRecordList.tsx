@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import {
     comboNeedsDeposit,
     getComboAdminAmount,
-    getComboTopUpAmount,
+    getComboRemainingDeposit,
     getDisplayedExpectedIncome,
     getDisplayedOrderAmount,
 } from "@/lib/grab-display";
@@ -69,24 +69,24 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                 ) : filteredRecords.map((record) => {
                     const isCombo = record.isCombo;
                     const orderPrice = Number(record.price) || 0;
-                    const adminDeposit = Number(record.requiredDeposit) || 0;
-                    const displayOrderAmount = getDisplayedOrderAmount({
-                        isCombo,
-                        storedPrice: orderPrice,
-                        requiredDeposit: adminDeposit,
-                    });
-                    const comboThreshold = getComboAdminAmount({
+                    const adminRequiredDeposit = getComboAdminAmount({
                         isCombo,
                         requiredDeposit: record.requiredDeposit,
                         storedPrice: orderPrice,
                     });
-                    const requiredTopUp = getComboTopUpAmount(comboThreshold, balance);
+                    const displayOrderAmount = getDisplayedOrderAmount({
+                        isCombo,
+                        storedPrice: orderPrice,
+                        requiredDeposit: record.requiredDeposit,
+                    });
+                    const depositedTowardOrder = Math.max(0, Number(record.depositedAmount) || 0);
+                    const remainingDeposit = getComboRemainingDeposit(adminRequiredDeposit, depositedTowardOrder);
                     const needsDeposit = comboNeedsDeposit({
                         isCombo,
                         isAdminAuthorized: record.isAdminAuthorized,
+                        requiredDeposit: record.requiredDeposit,
                         storedPrice: orderPrice,
-                        requiredDeposit: adminDeposit,
-                        walletBalance: balance,
+                        depositedAmount: depositedTowardOrder,
                     });
                     const isCancelled = record.status === "CANCELLED";
 
@@ -160,20 +160,22 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                                 <div className="pt-3 space-y-2 border-t border-black/5 dark:border-white/5">
                                     <StatRow label="Transaction time" value={new Date(record.createdAt).toISOString().replace("T", " ").slice(0, 19)} />
                                     <StatRow
-                                        label="Order amount"
+                                        label={isCombo ? "Required deposit" : "Order amount"}
                                         value={`${displayOrderAmount.toFixed(2)} USDT`}
                                         mono
                                     />
                                     <StatRow label="Commission" value={`${Number(record.commission).toFixed(2)} USDT`} mono />
+                                    {isCombo && adminRequiredDeposit > 0 && (
+                                        <StatRow label="Deposited toward order" value={`${depositedTowardOrder.toFixed(2)} USDT`} mono />
+                                    )}
                                     {isCombo && needsDeposit && (
-                                        <StatRow label="Remaining deposit" value={`${requiredTopUp.toFixed(2)} USDT`} mono highlight />
+                                        <StatRow label="Remaining deposit" value={`${remainingDeposit.toFixed(2)} USDT`} mono highlight />
                                     )}
                                     {isCombo && (
                                         <StatRow
                                             label="Your balance"
                                             value={`${balance.toFixed(2)} USDT`}
                                             mono
-                                            highlight={needsDeposit}
                                         />
                                     )}
                                     <div className="flex justify-between pt-2">

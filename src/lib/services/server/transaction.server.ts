@@ -3,21 +3,38 @@ import Transaction from "@/lib/models/Transaction";
 import dbConnect from "@/lib/mongodb";
 import { assertAdminPermission } from "@/lib/services/server/admin-auth.server";
 
-/** After balance is credited, allow combo submit when wallet meets admin-set `requiredDeposit`. */
-async function authorizeComboAfterDeposit(userId: string, balanceAfter: number) {
+/** Credit an approved deposit toward the user's pending combo order(s). */
+async function applyDepositToPendingCombo(userId: string, depositAmount: number) {
     const GrabOrder = (await import("@/lib/models/GrabOrder")).default;
     const pendingCombos = await GrabOrder.find({
         userId,
         status: "PENDING",
         isCombo: true,
         isAdminAuthorized: false,
-    });
-    for (const o of pendingCombos) {
-        const requiredDeposit = Math.max(0, Number(o.requiredDeposit) || Number(o.price) || 0);
-        if (requiredDeposit > 0 && balanceAfter >= requiredDeposit - 1e-6) {
-            o.isAdminAuthorized = true;
-            await o.save();
+    }).sort({ createdAt: 1 });
+
+    let remaining = Math.max(0, Number(depositAmount) || 0);
+    for (const order of pendingCombos) {
+        if (remaining <= 1e-6) break;
+
+        const required = Math.max(0, Number(order.requiredDeposit) || 0);
+        if (required <= 0) {
+            order.isAdminAuthorized = true;
+            await order.save();
+            continue;
         }
+
+        const current = Math.max(0, Number(order.depositedAmount) || 0);
+        const room = Math.max(0, required - current);
+        const applied = Math.min(room, remaining);
+        if (applied <= 0) continue;
+
+        order.depositedAmount = parseFloat((current + applied).toFixed(2));
+        if (order.depositedAmount >= required - 1e-6) {
+            order.isAdminAuthorized = true;
+        }
+        await order.save();
+        remaining = parseFloat((remaining - applied).toFixed(2));
     }
 }
 
@@ -56,7 +73,7 @@ export const transactionServerService = {
             await user.save();
             const transaction = await Transaction.create({ userId, type, amount, status: "COMPLETED" });
             if (type === "DEPOSIT") {
-                await authorizeComboAfterDeposit(user._id.toString(), user.balance);
+                await applyDepositToPendingCombo(user._id.toString(), amount);
             }
             return { balance: user.balance, transaction };
         }
@@ -155,7 +172,7 @@ export const transactionServerService = {
             await user.save();
 
             if (transaction.type === "DEPOSIT") {
-                await authorizeComboAfterDeposit(user._id.toString(), user.balance);
+                await applyDepositToPendingCombo(user._id.toString(), transaction.amount);
             }
         }
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Info, ArrowLeft, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useGrabOrder } from "@/hooks/useGrabOrder";
-import { getComboAdminAmount, getComboTopUpAmount } from "@/lib/grab-display";
+import { getComboAdminAmount, getComboRemainingDeposit } from "@/lib/grab-display";
 import { useTrading } from "@/hooks/useTrading";
 import { GrabRecordList } from "@/components/dashboard/GrabRecordList";
 import { OrderModal } from "@/components/dashboard/OrderModal";
@@ -40,6 +40,7 @@ export default function GrabRecordsPage() {
         if (
             fresh &&
             (fresh.isAdminAuthorized !== selectedOrder.isAdminAuthorized ||
+                fresh.depositedAmount !== selectedOrder.depositedAmount ||
                 fresh.status !== selectedOrder.status)
         ) {
             setSelectedOrder(fresh);
@@ -129,13 +130,13 @@ export default function GrabRecordsPage() {
                 onClose={() => setDepositOrder(null)}
                 requiredAmount={
                     depositOrder
-                        ? getComboTopUpAmount(
+                        ? getComboRemainingDeposit(
                             getComboAdminAmount({
                                 isCombo: !!depositOrder.isCombo,
                                 requiredDeposit: depositOrder.requiredDeposit,
                                 storedPrice: Number(depositOrder.price) || 0,
                             }),
-                            balance
+                            Number(depositOrder.depositedAmount) || 0
                         )
                         : undefined
                 }

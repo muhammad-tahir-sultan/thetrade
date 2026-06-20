@@ -21,6 +21,8 @@ const GrabOrderSchema = new Schema({
     isAdminAuthorized: { type: Boolean, default: false },
     authorizedAmount: { type: Number, default: 0 },
     requiredDeposit: { type: Number, default: 0 },
+    /** Approved deposits credited toward this combo's requiredDeposit (not wallet balance). */
+    depositedAmount: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now },
 });
 

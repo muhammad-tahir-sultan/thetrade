@@ -49,7 +49,13 @@ export async function PATCH(req: Request) {
         // If the request was for COMBO_UNLOCK, we should authorize the order
         if (request.type === "COMBO_UNLOCK" && status === "RESOLVED" && request.orderId) {
             const GrabOrder = (await import("@/lib/models/GrabOrder")).default;
-            await GrabOrder.findByIdAndUpdate(request.orderId, { isAdminAuthorized: true });
+            const order = await GrabOrder.findById(request.orderId);
+            if (order) {
+                const required = Math.max(0, Number(order.requiredDeposit) || 0);
+                order.depositedAmount = required;
+                order.isAdminAuthorized = true;
+                await order.save();
+            }
             
             // Also notify user by resetting status? (Implicitly they will see the submit button now)
             const targetUser = await User.findById(request.userId);

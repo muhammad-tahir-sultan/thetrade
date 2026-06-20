@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import {
     comboNeedsDeposit,
     getComboAdminAmount,
-    getComboTopUpAmount,
+    getComboRemainingDeposit,
     getDisplayedExpectedIncome,
     getDisplayedOrderAmount,
 } from "@/lib/grab-display";
@@ -55,20 +55,20 @@ export function OrderModal({
 
     const items = order.items ?? [];
     const orderPrice = Number(order.price) || 0;
-    const adminDeposit = Number(order.requiredDeposit ?? NaN);
-    const comboThreshold = getComboAdminAmount({
+    const adminRequiredDeposit = getComboAdminAmount({
         isCombo: !!order.isCombo,
-        requiredDeposit: Number.isFinite(adminDeposit) ? adminDeposit : null,
+        requiredDeposit: order.requiredDeposit,
         storedPrice: orderPrice,
     });
+    const depositedTowardOrder = Math.max(0, Number(order.depositedAmount) || 0);
     const needsDeposit = comboNeedsDeposit({
         isCombo: !!order.isCombo,
         isAdminAuthorized: order.isAdminAuthorized,
+        requiredDeposit: order.requiredDeposit,
         storedPrice: orderPrice,
-        requiredDeposit: adminDeposit,
-        walletBalance: balance,
+        depositedAmount: depositedTowardOrder,
     });
-    const requiredTopUp = getComboTopUpAmount(comboThreshold, balance);
+    const remainingDeposit = getComboRemainingDeposit(adminRequiredDeposit, depositedTowardOrder);
 
     return (
         <>
@@ -117,7 +117,7 @@ export function OrderModal({
                                 </span>
                             </div>
                             <div className="flex justify-between items-center text-xs sm:text-sm">
-                                <span className="text-zinc-400 font-medium">Order amount</span>
+                                <span className="text-zinc-400 font-medium">{order.isCombo ? "Required deposit" : "Order amount"}</span>
                                 <span className="text-zinc-800 dark:text-zinc-200 font-bold">{displayOrderAmount.toFixed(2)} USDT</span>
                             </div>
                             <div className="flex justify-between items-center text-xs sm:text-sm">
@@ -128,14 +128,22 @@ export function OrderModal({
                                 <>
                                     <div className="flex justify-between items-center text-xs sm:text-sm">
                                         <span className="text-zinc-400 font-medium">Your balance</span>
-                                        <span className={cn("font-bold", needsDeposit ? "text-amber-600" : "text-zinc-800 dark:text-zinc-200")}>
+                                        <span className="font-bold text-zinc-800 dark:text-zinc-200">
                                             {balance.toFixed(2)} USDT
                                         </span>
                                     </div>
+                                    {adminRequiredDeposit > 0 && (
+                                        <div className="flex justify-between items-center text-xs sm:text-sm">
+                                            <span className="text-zinc-400 font-medium">Deposited toward order</span>
+                                            <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                                                {depositedTowardOrder.toFixed(2)} USDT
+                                            </span>
+                                        </div>
+                                    )}
                                     {needsDeposit && (
                                         <div className="flex justify-between items-center text-xs sm:text-sm">
                                             <span className="text-zinc-400 font-medium">Remaining deposit</span>
-                                            <span className="text-amber-600 font-bold">{requiredTopUp.toFixed(2)} USDT</span>
+                                            <span className="text-amber-600 font-bold">{remainingDeposit.toFixed(2)} USDT</span>
                                         </div>
                                     )}
                                 </>
@@ -144,8 +152,8 @@ export function OrderModal({
                                 <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-center">
                                     <p className="text-xs sm:text-sm font-bold text-amber-700 dark:text-amber-400 leading-relaxed">
                                         Deposit{" "}
-                                        <span className="text-amber-600 font-black">{requiredTopUp.toFixed(2)} USDT</span>
-                                        {" "}more to submit this combo order.
+                                        <span className="text-amber-600 font-black">{remainingDeposit.toFixed(2)} USDT</span>
+                                        {" "}to submit this combo order.
                                     </p>
                                 </div>
                             )}
@@ -171,7 +179,7 @@ export function OrderModal({
                                 className="w-full py-4 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-black rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Wallet size={18} />
-                                {hasPendingDeposit ? "Deposit pending…" : "Deposit Now"}
+                                {hasPendingDeposit ? "Deposit pending…" : "Deposit to Submit Order"}
                             </button>
                         ) : (
                             <button
@@ -201,7 +209,7 @@ export function OrderModal({
             <DepositModal
                 isOpen={showDepositModal}
                 onClose={() => setShowDepositModal(false)}
-                requiredAmount={requiredTopUp > 0 ? requiredTopUp : undefined}
+                requiredAmount={remainingDeposit > 0 ? remainingDeposit : undefined}
                 hasPendingDeposit={hasPendingDeposit}
                 onSubmitPending={onDepositSubmit}
                 isPending={isDepositPending}

@@ -109,6 +109,8 @@ export const grabServerService = {
             commission,
             isCombo,
             requiredDeposit: adminRequiredDeposit,
+            depositedAmount: 0,
+            isAdminAuthorized: adminRequiredDeposit <= 0,
             status: "PENDING",
         });
 
@@ -130,10 +132,11 @@ export const grabServerService = {
         if (!user) throw new Error("User not found");
 
         if (order.isCombo && !order.isAdminAuthorized) {
-            const threshold = Math.max(0, Number(order.requiredDeposit ?? order.price) || 0);
-            if (threshold > 0 && user.balance < threshold - 1e-6) {
-                const short = (threshold - user.balance).toFixed(2);
-                throw new Error(`Balance insufficient. Deposit ${short} USDT to submit this order.`);
+            const required = Math.max(0, Number(order.requiredDeposit) || 0);
+            const deposited = Math.max(0, Number(order.depositedAmount) || 0);
+            if (required > 0 && deposited < required - 1e-6) {
+                const short = (required - deposited).toFixed(2);
+                throw new Error(`Deposit ${short} USDT more to submit this combo order.`);
             }
         }
 

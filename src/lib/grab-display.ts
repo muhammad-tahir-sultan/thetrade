@@ -1,4 +1,4 @@
-/** Admin-set combo amount (0 is valid — do not fall back to storedPrice). */
+/** Admin-set combo deposit target (0 is valid). */
 export function getComboAdminAmount(params: {
     isCombo: boolean;
     requiredDeposit?: number | null;
@@ -22,7 +22,6 @@ export function getDisplayedOrderAmount(params: {
     isCombo: boolean;
     storedPrice: number;
     requiredDeposit?: number | null;
-    walletBalance?: number;
 }): number {
     return getComboAdminAmount({
         isCombo: params.isCombo,
@@ -35,29 +34,29 @@ export function getDisplayedExpectedIncome(orderAmount: number, commission: numb
     return parseFloat((orderAmount + commission).toFixed(4));
 }
 
-/** Admin-set deposit the user must add before submitting a combo order. */
-export function getAdminRequiredDeposit(requiredDeposit: number): number {
-    return Math.max(0, Number(requiredDeposit) || 0);
+/** How much more the user must deposit toward this combo (independent of wallet balance). */
+export function getComboRemainingDeposit(requiredDeposit: number, depositedAmount: number): number {
+    const required = Math.max(0, Number(requiredDeposit) || 0);
+    const deposited = Math.max(0, Number(depositedAmount) || 0);
+    return Math.max(0, parseFloat((required - deposited).toFixed(2)));
 }
 
-/** How much more USDT the user must deposit to meet the admin-set combo amount. */
-export function getComboTopUpAmount(requiredDeposit: number, walletBalance: number): number {
-    const threshold = Math.max(0, Number(requiredDeposit) || 0);
-    const balance = Number(walletBalance) || 0;
-    return Math.max(0, parseFloat((threshold - balance).toFixed(2)));
+/** @deprecated Use getComboRemainingDeposit — wallet balance is not part of combo deposit math. */
+export function getComboTopUpAmount(requiredDeposit: number, depositedAmount: number): number {
+    return getComboRemainingDeposit(requiredDeposit, depositedAmount);
 }
 
-/** True when a combo order cannot be submitted until the wallet meets the admin amount. */
+/** True when a combo still needs approved deposits before it can be submitted. */
 export function comboNeedsDeposit(params: {
     isCombo: boolean;
     isAdminAuthorized?: boolean;
-    storedPrice: number;
     requiredDeposit?: number | null;
-    walletBalance: number;
+    storedPrice?: number;
+    depositedAmount?: number;
 }): boolean {
-    const { isCombo, isAdminAuthorized, storedPrice, requiredDeposit, walletBalance } = params;
+    const { isCombo, isAdminAuthorized, requiredDeposit, storedPrice, depositedAmount } = params;
     if (!isCombo || isAdminAuthorized) return false;
-    const threshold = getComboAdminAmount({ isCombo: true, requiredDeposit, storedPrice });
-    if (threshold <= 1e-6) return false;
-    return getComboTopUpAmount(threshold, walletBalance) > 1e-6;
+    const required = getComboAdminAmount({ isCombo: true, requiredDeposit, storedPrice });
+    if (required <= 1e-6) return false;
+    return getComboRemainingDeposit(required, depositedAmount ?? 0) > 1e-6;
 }
