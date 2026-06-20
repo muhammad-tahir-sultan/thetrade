@@ -49,7 +49,6 @@ export function OrderModal({
         isCombo: !!order.isCombo,
         storedPrice: Number(order.price) || 0,
         requiredDeposit: Number(order.requiredDeposit) || 0,
-        walletBalance: balance,
     });
     const displayExpectedIncome = getDisplayedExpectedIncome(displayOrderAmount, Number(order.commission) || 0);
 
