@@ -98,13 +98,12 @@ export function UserManagement() {
         onError: (e: Error) => toast.error(e.message),
     });
 
-    const resetCombosMutation = useMutation({
-        mutationFn: ({ userId, clearConfig }: { userId: string; clearConfig: boolean }) =>
-            adminService.resetUserComboOrders(userId, clearConfig),
-        onSuccess: async (data: any, vars) => {
+    const resetOrderBatchMutation = useMutation({
+        mutationFn: (userId: string) => adminService.resetUserOrderBatch(userId),
+        onSuccess: async (data: any, userId) => {
             await qc.invalidateQueries({ queryKey: ["admin-users"] });
-            await qc.invalidateQueries({ queryKey: ["admin-user", vars.userId] });
-            toast.success(data?.message || "Combo orders reset");
+            await qc.invalidateQueries({ queryKey: ["admin-user", userId] });
+            toast.success(data?.message || "Orders reset — user can request 25 again");
         },
         onError: (e: Error) => toast.error(e.message),
     });
@@ -347,10 +346,37 @@ export function UserManagement() {
                                         </div>
                                     </div>
 
-                                    <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 space-y-3">
-                                        <p className="text-sm font-black text-red-600 dark:text-red-400">Account reset</p>
+                                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-3">
+                                        <p className="text-sm font-black text-amber-700 dark:text-amber-400">Reset orders</p>
                                         <p className="text-xs text-secondary leading-relaxed">
-                                            Wipes all orders, deposits, withdrawals, CS requests, wallet settings, and progress.
+                                            Deletes all grab &amp; combo orders (pending, completed, cancelled) and clears task progress.
+                                            User returns to <strong>Request 25 Orders</strong>. Balance and deposit history are kept.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            className="w-full py-3 rounded-2xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-400 cursor-pointer disabled:opacity-50"
+                                            disabled={resetOrderBatchMutation.isPending}
+                                            onClick={() => {
+                                                if (!detailQuery.data?._id) return;
+                                                const ok = window.confirm(
+                                                    "Remove all orders for this user?\n\n" +
+                                                        "• All regular + combo orders deleted\n" +
+                                                        "• Progress reset to 0/25\n" +
+                                                        "• User must request 25 orders again\n\n" +
+                                                        "Balance and transaction history will NOT be changed."
+                                                );
+                                                if (!ok) return;
+                                                resetOrderBatchMutation.mutate(String(detailQuery.data._id));
+                                            }}
+                                        >
+                                            {resetOrderBatchMutation.isPending ? "Resetting orders…" : "Reset orders & request batch"}
+                                        </button>
+                                    </div>
+
+                                    <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 space-y-3">
+                                        <p className="text-sm font-black text-red-600 dark:text-red-400">Full account reset</p>
+                                        <p className="text-xs text-secondary leading-relaxed">
+                                            Everything above, plus wipes balance, deposits, withdrawals, CS requests, and wallet settings.
                                             Keeps login credentials (name, email, password) and invitation code.
                                         </p>
                                         <button
@@ -360,16 +386,15 @@ export function UserManagement() {
                                             onClick={() => {
                                                 if (!detailQuery.data?._id) return;
                                                 if (detailQuery.data.role === "ADMIN") {
-                                                    toast.error("Admin accounts cannot be reset here");
+                                                    toast.error("Admin accounts cannot be fully reset here");
                                                     return;
                                                 }
                                                 const ok = window.confirm(
-                                                    "Reset this user to a fresh state?\n\n" +
-                                                        "This permanently deletes:\n" +
-                                                        "• All grab/combo orders\n" +
-                                                        "• Deposit & withdrawal history\n" +
-                                                        "• CS and security requests\n" +
-                                                        "• Balance, commissions, and task progress\n\n" +
+                                                    "Reset this user to a completely fresh state?\n\n" +
+                                                        "• All orders removed\n" +
+                                                        "• Balance set to 0\n" +
+                                                        "• Deposit & withdrawal history deleted\n" +
+                                                        "• User must request 25 orders again\n\n" +
                                                         "Login credentials will be kept."
                                                 );
                                                 if (!ok) return;
@@ -377,38 +402,6 @@ export function UserManagement() {
                                             }}
                                         >
                                             {resetAccountMutation.isPending ? "Resetting account…" : "Full account reset"}
-                                        </button>
-                                    </div>
-
-                                    <div className="flex flex-col gap-3">
-                                        <p className="text-[10px] font-black uppercase tracking-wider text-secondary">Combo only</p>
-                                        <button
-                                            className="w-full py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold text-sm hover:bg-amber-500/20 cursor-pointer disabled:opacity-50"
-                                            disabled={resetCombosMutation.isPending}
-                                            onClick={() => {
-                                                if (!detailQuery.data?._id) return;
-                                                if (!window.confirm("Cancel all pending combo orders for this user and unlock their account?")) return;
-                                                resetCombosMutation.mutate({
-                                                    userId: String(detailQuery.data._id),
-                                                    clearConfig: false,
-                                                });
-                                            }}
-                                        >
-                                            {resetCombosMutation.isPending ? "Resetting…" : "Reset pending combo orders"}
-                                        </button>
-                                        <button
-                                            className="w-full py-3 rounded-2xl border border-red-500/20 bg-red-500/5 text-red-500 font-bold text-sm hover:bg-red-500/10 cursor-pointer disabled:opacity-50"
-                                            disabled={resetCombosMutation.isPending}
-                                            onClick={() => {
-                                                if (!detailQuery.data?._id) return;
-                                                if (!window.confirm("Remove all pending combo orders AND clear combo configuration for this user?")) return;
-                                                resetCombosMutation.mutate({
-                                                    userId: String(detailQuery.data._id),
-                                                    clearConfig: true,
-                                                });
-                                            }}
-                                        >
-                                            Reset combo orders + clear config
                                         </button>
                                     </div>
 

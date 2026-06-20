@@ -188,22 +188,26 @@ export const grabServerService = {
         return { success: true };
     },
 
-    async resetUserComboOrders(userId: string) {
+    async resetUserOrderBatch(userId: string) {
         await dbConnect();
         const user = await User.findById(userId);
         if (!user) throw new Error("User not found");
 
-        const result = await GrabOrder.updateMany(
-            { userId, isCombo: true, status: "PENDING" },
-            { $set: { status: "CANCELLED" } }
-        );
+        const result = await GrabOrder.deleteMany({ userId });
 
-        if (user.status === "PENDING_COMBO") {
-            user.status = "ACTIVE";
-            await user.save();
-        }
+        user.dailyTasksCompleted = 0;
+        user.dailyCommission = 0;
+        user.status = "ACTIVE";
+        user.taskRequestStatus = "NONE";
+        user.comboConfig = [];
+        await user.save();
 
-        return { cancelledCount: result.modifiedCount };
+        return { deletedOrders: result.deletedCount ?? 0 };
+    },
+
+    /** @deprecated Use resetUserOrderBatch — cancels pending combos only. */
+    async resetUserComboOrders(userId: string) {
+        return this.resetUserOrderBatch(userId);
     },
 
 };

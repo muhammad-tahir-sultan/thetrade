@@ -249,25 +249,28 @@ export const adminUsersServer = {
         return { user: pub, plainPasswordEcho };
     },
 
-    async resetComboOrders(
-        id: string,
-        adminUserId: string,
-        options?: { clearConfig?: boolean }
-    ) {
+    async resetOrderBatch(id: string, adminUserId: string) {
         await assertAdminPermission(adminUserId, "MANAGE_USERS");
         await dbConnect();
 
         const user = await User.findById(id);
         if (!user) throw new Error("User not found");
 
-        const { cancelledCount } = await grabServerService.resetUserComboOrders(id);
+        const { deletedOrders } = await grabServerService.resetUserOrderBatch(id);
+        return { deletedOrders };
+    },
 
-        if (options?.clearConfig) {
-            user.comboConfig = [];
-            await user.save();
-        }
-
-        return { cancelledCount, clearConfig: !!options?.clearConfig };
+    async resetComboOrders(
+        id: string,
+        adminUserId: string,
+        options?: { clearConfig?: boolean }
+    ) {
+        const result = await this.resetOrderBatch(id, adminUserId);
+        return {
+            deletedOrders: result.deletedOrders,
+            cancelledCount: result.deletedOrders,
+            clearConfig: !!options?.clearConfig,
+        };
     },
 
     async resetUserAccount(id: string, adminUserId: string) {

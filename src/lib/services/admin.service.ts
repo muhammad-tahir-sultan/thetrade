@@ -91,6 +91,11 @@ export const adminService = {
         return response.data;
     },
 
+    async resetUserOrderBatch(id: string) {
+        const response = await apiClient.post(`/admin/users/${id}/reset-orders`);
+        return response.data;
+    },
+
     async resetUserAccount(id: string) {
         const response = await apiClient.post(`/admin/users/${id}/reset-account`);
         return response.data;
