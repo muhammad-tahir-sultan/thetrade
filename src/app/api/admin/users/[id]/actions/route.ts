@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { adminUsersServer } from "@/lib/services/server/admin-users.server";
 
+type UserAction = "reset-orders" | "reset-account";
+
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
     try {
         const session = await getServerSession(authOptions);
@@ -15,14 +17,25 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
         const { id } = await ctx.params;
         const body = await req.json().catch(() => ({}));
-        const result = await adminUsersServer.resetComboOrders(id, adminId, {
-            clearConfig: !!body.clearConfig,
-        });
+        const action = String(body.action || "") as UserAction;
 
-        return NextResponse.json({
-            message: `Removed ${result.cancelledCount} pending combo order(s)`,
-            ...result,
-        });
+        if (action === "reset-orders") {
+            const result = await adminUsersServer.resetOrderBatch(id, adminId);
+            return NextResponse.json({
+                message: `Removed ${result.deletedOrders} order(s). User must request 25 orders again.`,
+                ...result,
+            });
+        }
+
+        if (action === "reset-account") {
+            const result = await adminUsersServer.resetUserAccount(id, adminId);
+            return NextResponse.json({
+                message: "User account reset to a fresh state. Login credentials were kept.",
+                ...result,
+            });
+        }
+
+        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     } catch (e: any) {
         const msg = e.message || "Server error";
         return NextResponse.json(

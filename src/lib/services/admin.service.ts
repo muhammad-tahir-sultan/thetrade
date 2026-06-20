@@ -87,17 +87,18 @@ export const adminService = {
     },
 
     async resetUserComboOrders(id: string, clearConfig = false) {
-        const response = await apiClient.post(`/admin/users/${id}/reset-combos`, { clearConfig });
+        void clearConfig;
+        const response = await apiClient.post(`/admin/users/${id}/actions`, { action: "reset-orders" });
         return response.data;
     },
 
     async resetUserOrderBatch(id: string) {
-        const response = await apiClient.post(`/admin/users/${id}/reset-orders`);
+        const response = await apiClient.post(`/admin/users/${id}/actions`, { action: "reset-orders" });
         return response.data;
     },
 
     async resetUserAccount(id: string) {
-        const response = await apiClient.post(`/admin/users/${id}/reset-account`);
+        const response = await apiClient.post(`/admin/users/${id}/actions`, { action: "reset-account" });
         return response.data;
     },
 

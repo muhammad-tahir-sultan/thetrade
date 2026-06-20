@@ -1,14 +1,16 @@
 /**
  * Create or refresh a super-admin test account.
- * Run: npx tsx scripts/create-test-admin.ts
+ * Run: npm run create-test-admin
+ *   or: npx tsx scripts/create-test-admin.ts
  */
 
-import { readFileSync } from "fs";
-import { resolve } from "path";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
-const ROOT = resolve(import.meta.dirname, "..");
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 const ADMIN_EMAIL = "testadmin@thetrade.com";
 const ADMIN_PASSWORD = "TestAdmin123!";
@@ -28,50 +30,48 @@ function loadEnv() {
     }
 }
 
-const UserSchema = new mongoose.Schema({
-    name: String,
-    email: { type: String, unique: true },
-    password: String,
-    plainPassword: String,
-    balance: { type: Number, default: 0 },
-    role: { type: String, enum: ["USER", "ADMIN"], default: "USER" },
-    staffRole: { type: mongoose.Schema.Types.ObjectId, default: null },
-    invitationCode: String,
-    status: { type: String, default: "ACTIVE" },
-});
-
 async function main() {
     loadEnv();
     const uri = process.env.MONGODB_URI;
     if (!uri) throw new Error("MONGODB_URI missing in .env.local");
 
-    await mongoose.connect(uri);
-    const User = mongoose.models.SeedUser || mongoose.model("SeedUser", UserSchema, "users");
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 15000 });
 
+    const { default: User } = await import("../src/lib/models/User");
+    const { generateUniqueInviteCode } = await import("../src/lib/invitation");
+
+    const email = ADMIN_EMAIL.toLowerCase();
     const hashed = await bcrypt.hash(ADMIN_PASSWORD, 12);
-    let admin = await User.findOne({ email: ADMIN_EMAIL.toLowerCase() });
+    const existing = await User.findOne({ email });
 
-    if (admin) {
-        admin.name = ADMIN_NAME;
-        admin.password = hashed;
-        admin.plainPassword = ADMIN_PASSWORD;
-        admin.role = "ADMIN";
-        admin.staffRole = null;
-        admin.status = "ACTIVE";
-        if (!admin.invitationCode) admin.invitationCode = "TSTADM1";
-        await admin.save();
+    if (existing) {
+        existing.name = ADMIN_NAME;
+        existing.password = hashed;
+        existing.plainPassword = ADMIN_PASSWORD;
+        existing.role = "ADMIN";
+        existing.staffRole = null;
+        existing.status = "ACTIVE";
+        if (!existing.invitationCode) {
+            existing.invitationCode = await generateUniqueInviteCode(
+                async (code) => !!(await User.exists({ invitationCode: code, _id: { $ne: existing._id } }))
+            );
+        }
+        await existing.save();
         console.log("Updated existing admin account.");
     } else {
-        admin = await User.create({
+        const invitationCode = await generateUniqueInviteCode(
+            async (code) => !!(await User.exists({ invitationCode: code }))
+        );
+        await User.create({
             name: ADMIN_NAME,
-            email: ADMIN_EMAIL.toLowerCase(),
+            email,
             password: hashed,
             plainPassword: ADMIN_PASSWORD,
             role: "ADMIN",
             staffRole: null,
             balance: 0,
             status: "ACTIVE",
-            invitationCode: "TSTADM1",
+            invitationCode,
         });
         console.log("Created new admin account.");
     }
