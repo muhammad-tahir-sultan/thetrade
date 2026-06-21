@@ -70,7 +70,7 @@ export function OrderModal({
     const remainingDeposit = getComboRemainingDeposit(adminRequiredDeposit, depositedTowardOrder);
     const requiredDepositLine = isCombo ? remainingDeposit : 0;
     const summaryTotal = isCombo 
-        ? balance + adminRequiredDeposit + commission
+        ? balance + requiredDepositLine + commission
         : balance + orderPrice + commission;
 
     return (
@@ -126,14 +126,14 @@ export function OrderModal({
                             <div className="flex justify-between items-center text-xs sm:text-sm">
                                 <span className="text-zinc-400 font-medium">Orders amount</span>
                                 <span className="text-zinc-800 dark:text-zinc-200 font-bold">
-                                    {(isCombo ? balance + adminRequiredDeposit : orderPrice).toFixed(2)} USDT
+                                    {(isCombo ? balance + requiredDepositLine : orderPrice).toFixed(2)} USDT
                                 </span>
                             </div>
                             {isCombo && (
                                 <div className="flex justify-between items-center text-xs sm:text-sm">
                                     <span className="text-zinc-400 font-medium">Required deposit</span>
                                     <span className="text-zinc-800 dark:text-zinc-200 font-bold">
-                                        {adminRequiredDeposit.toFixed(2)} USDT
+                                        {requiredDepositLine.toFixed(2)} USDT
                                     </span>
                                 </div>
                             )}

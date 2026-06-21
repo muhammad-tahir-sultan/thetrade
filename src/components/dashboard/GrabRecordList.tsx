@@ -90,10 +90,13 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                         storedPrice: orderPrice,
                         depositedAmount: depositedTowardOrder,
                     });
+                    const isPendingCombo = isCombo && record.status === "PENDING";
+                    const calculatedOrderAmount = isPendingCombo ? balance + requiredDepositLine : (isCombo ? displayOrderAmount : orderPrice);
+                    
                     const summaryTotal = getOrderSummaryTotal({
                         balance,
-                        orderAmount: isCombo ? displayOrderAmount : orderPrice,
-                        requiredDeposit: requiredDepositLine,
+                        orderAmount: calculatedOrderAmount,
+                        requiredDeposit: isPendingCombo ? 0 : requiredDepositLine, // pass 0 because it's already in calculatedOrderAmount to avoid double counting
                         commission,
                         isCombo,
                     });
@@ -170,10 +173,10 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                                 {/* Stats */}
                                 <div className="pt-3 space-y-2 border-t border-black/5 dark:border-white/5">
                                     <StatRow label="Transaction time" value={new Date(record.createdAt).toISOString().replace("T", " ").slice(0, 19)} />
-                                    <StatRow label="Your balance" value={`${balance.toFixed(2)} USDT`} mono />
+                                    <StatRow label="Your balance" value={`${balance.toFixed(2)} USDT`} mono error={isCombo && needsDeposit} />
                                     <StatRow
                                         label="Order amount"
-                                        value={`${(isCombo ? displayOrderAmount : orderPrice).toFixed(2)} USDT`}
+                                        value={`${calculatedOrderAmount.toFixed(2)} USDT`}
                                         mono
                                     />
                                     {isCombo && (
@@ -218,11 +221,11 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
     );
 }
 
-function StatRow({ label, value, mono, highlight }: { label: string; value: string; mono?: boolean; highlight?: boolean }) {
+function StatRow({ label, value, mono, highlight, error }: { label: string; value: string; mono?: boolean; highlight?: boolean; error?: boolean }) {
     return (
         <div className="flex justify-between text-[12px]">
             <span className="text-zinc-400">{label}</span>
-            <span className={cn("font-medium", mono && "font-mono", highlight ? "text-amber-600 font-bold" : "text-zinc-600 dark:text-zinc-400")}>
+            <span className={cn("font-medium", mono && "font-mono", error ? "text-red-600 dark:text-red-500 font-bold" : highlight ? "text-amber-600 font-bold" : "text-zinc-600 dark:text-zinc-400")}>
                 {value}
             </span>
         </div>
