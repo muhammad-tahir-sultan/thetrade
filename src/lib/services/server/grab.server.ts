@@ -10,16 +10,20 @@ function getCommissionRate(orderIndex: number): number {
 }
 
 export const grabServerService = {
-    async getRandomProductData() {
+    async getRandomProductData(count: number = 1) {
         const products = await Product.find({ isActive: true }).select("name image").lean();
         if (!products.length) {
             throw new Error("No active products configured. Ask admin to add products.");
         }
-        const item = products[Math.floor(Math.random() * products.length)] as any;
-        return {
-            name: item.name,
-            image: item.image,
-        };
+        const selected = [];
+        for (let i = 0; i < count; i++) {
+            const item = products[Math.floor(Math.random() * products.length)] as any;
+            selected.push({
+                name: item.name,
+                image: item.image,
+            });
+        }
+        return selected;
     },
 
     async grabNewOrder(userId: string) {
@@ -81,16 +85,15 @@ export const grabServerService = {
         const finalPrice = isCombo
             ? parseFloat(adminRequiredDeposit.toFixed(2))
             : Math.max(parseFloat(price.toFixed(2)), 0.01);
-        const baseProduct = await this.getRandomProductData();
-        const productName = baseProduct.name;
+        const baseProducts = await this.getRandomProductData(4);
+        const productName = baseProducts[0].name + " & others";
 
-        const items = [];
-        items.push({
-            name: productName,
-            image: baseProduct.image,
-            price: finalPrice,
+        const items = baseProducts.map((prod) => ({
+            name: prod.name,
+            image: prod.image,
+            price: parseFloat((finalPrice / 4).toFixed(2)),
             quantity: 1,
-        });
+        }));
 
         const newOrder = await GrabOrder.create({
             userId,
