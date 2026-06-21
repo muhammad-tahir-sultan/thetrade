@@ -7,8 +7,8 @@ import {
     comboNeedsDeposit,
     getComboAdminAmount,
     getComboRemainingDeposit,
-    getDisplayedExpectedIncome,
     getDisplayedOrderAmount,
+    getOrderSummaryTotal,
 } from "@/lib/grab-display";
 
 interface GrabRecordListProps {
@@ -69,6 +69,7 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                 ) : filteredRecords.map((record) => {
                     const isCombo = record.isCombo;
                     const orderPrice = Number(record.price) || 0;
+                    const commission = Number(record.commission) || 0;
                     const adminRequiredDeposit = getComboAdminAmount({
                         isCombo,
                         requiredDeposit: record.requiredDeposit,
@@ -81,12 +82,20 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                     });
                     const depositedTowardOrder = Math.max(0, Number(record.depositedAmount) || 0);
                     const remainingDeposit = getComboRemainingDeposit(adminRequiredDeposit, depositedTowardOrder);
+                    const requiredDepositLine = isCombo ? remainingDeposit : 0;
                     const needsDeposit = comboNeedsDeposit({
                         isCombo,
                         isAdminAuthorized: record.isAdminAuthorized,
                         requiredDeposit: record.requiredDeposit,
                         storedPrice: orderPrice,
                         depositedAmount: depositedTowardOrder,
+                    });
+                    const summaryTotal = getOrderSummaryTotal({
+                        balance,
+                        orderAmount: isCombo ? displayOrderAmount : orderPrice,
+                        requiredDeposit: requiredDepositLine,
+                        commission,
+                        isCombo,
                     });
                     const isCancelled = record.status === "CANCELLED";
 
@@ -141,16 +150,18 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                                                     ? <img src={item.image} alt={item?.name} className="w-full h-full object-cover" />
                                                     : <Package className="text-zinc-300" size={28} />}
                                             </div>
-                                            <div className="flex-1 flex flex-col justify-between py-1">
-                                                <p className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200 line-clamp-2 leading-tight">
-                                                    {item?.name ?? record.productName}
-                                                </p>
-                                                <div className="flex justify-between items-center">
-                                                    <p className="text-[14px] font-bold text-primary">
+                                            <div className="flex-1 flex flex-col justify-between py-1 min-w-0">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <p className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200 line-clamp-2 leading-tight flex-1">
+                                                        {item?.name ?? record.productName}
+                                                    </p>
+                                                    <p className="text-zinc-400 text-[12px] shrink-0">x{item?.quantity ?? 1}</p>
+                                                </div>
+                                                {!isCombo && (
+                                                    <p className="text-[14px] font-bold text-primary mt-1">
                                                         {(item?.price ?? record.price).toFixed(2)} USDT
                                                     </p>
-                                                    <p className="text-zinc-400 text-[12px]">x{item?.quantity ?? 1}</p>
-                                                </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
@@ -159,29 +170,25 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                                 {/* Stats */}
                                 <div className="pt-3 space-y-2 border-t border-black/5 dark:border-white/5">
                                     <StatRow label="Transaction time" value={new Date(record.createdAt).toISOString().replace("T", " ").slice(0, 19)} />
+                                    <StatRow label="Your balance" value={`${balance.toFixed(2)} USDT`} mono />
                                     <StatRow
-                                        label={isCombo ? "Required deposit" : "Order amount"}
-                                        value={`${displayOrderAmount.toFixed(2)} USDT`}
+                                        label="Order amount"
+                                        value={`${(isCombo ? displayOrderAmount : orderPrice).toFixed(2)} USDT`}
                                         mono
                                     />
-                                    <StatRow label="Commission" value={`${Number(record.commission).toFixed(2)} USDT`} mono />
-                                    {isCombo && adminRequiredDeposit > 0 && (
-                                        <StatRow label="Deposited toward order" value={`${depositedTowardOrder.toFixed(2)} USDT`} mono />
-                                    )}
-                                    {isCombo && needsDeposit && (
-                                        <StatRow label="Remaining deposit" value={`${remainingDeposit.toFixed(2)} USDT`} mono highlight />
-                                    )}
                                     {isCombo && (
                                         <StatRow
-                                            label="Your balance"
-                                            value={`${balance.toFixed(2)} USDT`}
+                                            label="Required deposit"
+                                            value={`${requiredDepositLine.toFixed(2)} USDT`}
                                             mono
+                                            highlight={needsDeposit}
                                         />
                                     )}
-                                    <div className="flex justify-between pt-2">
+                                    <StatRow label="Commission" value={`${commission.toFixed(2)} USDT`} mono />
+                                    <div className="flex justify-between pt-2 border-t border-black/5 dark:border-white/5">
                                         <span className="text-zinc-400 text-[12px] font-medium">Expected income</span>
                                         <span className="text-[15px] font-black text-amber-600 font-mono">
-                                            {getDisplayedExpectedIncome(displayOrderAmount, Number(record.commission) || 0).toFixed(2)} USDT
+                                            {summaryTotal.toFixed(2)} USDT
                                         </span>
                                     </div>
                                 </div>

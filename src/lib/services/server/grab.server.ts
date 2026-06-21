@@ -69,7 +69,7 @@ export const grabServerService = {
         // [2] Progressive commission — floor ensures minimum regardless of balance
         const rate = getCommissionRate(nextGrabIndex);
         const rawCommission = isCombo
-            ? adminRequiredDeposit * 0.30
+            ? adminRequiredDeposit * 0.15
             : user.balance * rate;
         const commission = isCombo
             ? (adminRequiredDeposit > 0
@@ -85,25 +85,16 @@ export const grabServerService = {
         const productName = baseProduct.name;
 
         const items = [];
-        if (isCombo) {
-            items.push({
-                name: "Combine Order",
-                image: baseProduct.image,
-                price: finalPrice,
-                quantity: 1,
-            });
-        } else {
-            items.push({
-                name: productName,
-                image: baseProduct.image,
-                price: finalPrice,
-                quantity: 1,
-            });
-        }
+        items.push({
+            name: productName,
+            image: baseProduct.image,
+            price: finalPrice,
+            quantity: 1,
+        });
 
         const newOrder = await GrabOrder.create({
             userId,
-            productName: isCombo ? "Combine Order" : productName,
+            productName,
             items,
             price: finalPrice,
             commission,

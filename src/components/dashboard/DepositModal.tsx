@@ -124,10 +124,6 @@ export function DepositModal({ isOpen, onClose, requiredAmount, hasPendingDeposi
         }
         const val = Number(amount);
         if (!val || val <= 0) { toast.error("Enter the amount you sent"); return; }
-        if (requiredAmount && val < requiredAmount - 1e-6) {
-            toast.error(`Minimum deposit for this order is ${requiredAmount.toFixed(2)} USDT`);
-            return;
-        }
         if (!onSubmitPending) return;
         try {
             await onSubmitPending(val, addr.address ?? "");
@@ -206,10 +202,6 @@ export function DepositModal({ isOpen, onClose, requiredAmount, hasPendingDeposi
         }
         const val = Number(amount);
         if (!val || val <= 0) { toast.error("Enter deposit amount first"); return; }
-        if (requiredAmount && val < requiredAmount - 1e-6) {
-            toast.error(`Minimum required for this order is ${requiredAmount.toFixed(2)} USDT`);
-            return;
-        }
         setShowQr(true);
         if (!addr.address && !loading) {
             await fetchAddress();
