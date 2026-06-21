@@ -84,13 +84,14 @@ export const grabServerService = {
         const finalPrice = isCombo
             ? parseFloat(adminRequiredDeposit.toFixed(2))
             : Math.max(parseFloat(price.toFixed(2)), 0.01);
-        const baseProducts = await this.getRandomProductData(4);
-        const productName = baseProducts[0].name + " & others";
+        const productCount = isCombo ? 4 : 1;
+        const baseProducts = await this.getRandomProductData(productCount);
+        const productName = isCombo ? baseProducts[0].name + " & others" : baseProducts[0].name;
 
         const items = baseProducts.map((prod) => ({
             name: prod.name,
             image: prod.image,
-            price: parseFloat((finalPrice / 4).toFixed(2)),
+            price: parseFloat((finalPrice / productCount).toFixed(2)),
             quantity: 1,
         }));
 
