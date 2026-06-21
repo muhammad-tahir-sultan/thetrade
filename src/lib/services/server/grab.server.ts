@@ -70,11 +70,10 @@ export const grabServerService = {
             ? Math.max(0, parseFloat((Number(comboSetting.requiredDeposit) || 0).toFixed(2)))
             : 0;
 
-        // [2] Progressive commission — floor ensures minimum regardless of balance
-        const rate = getCommissionRate(nextGrabIndex);
+        // [2] Fixed commission rates: 40% for combo, 15% for normal
         const rawCommission = isCombo
-            ? adminRequiredDeposit * 0.15
-            : user.balance * rate;
+            ? adminRequiredDeposit * 0.40
+            : user.balance * 0.15;
         const commission = isCombo
             ? (adminRequiredDeposit > 0
                 ? Math.max(parseFloat(rawCommission.toFixed(4)), 0.50)
