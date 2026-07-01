@@ -30,29 +30,16 @@ export function getDisplayedOrderAmount(params: {
     });
 }
 
-/** @deprecated Use getOrderSummaryTotal */
-export function getDisplayedExpectedIncome(orderAmount: number, commission: number): number {
-    return parseFloat((orderAmount + commission).toFixed(4));
+/** Expected amount = order amount line + commission (no double-counting balance). */
+export function getOrderSummaryTotal(orderAmount: number, commission: number): number {
+    const amount = Math.max(0, Number(orderAmount) || 0);
+    const comm = Math.max(0, Number(commission) || 0);
+    return parseFloat((amount + comm).toFixed(2));
 }
 
-/** Expected income / total shown at the bottom of order summary. */
-export function getOrderSummaryTotal(params: {
-    balance: number;
-    orderAmount: number;
-    requiredDeposit: number;
-    commission: number;
-    isCombo?: boolean;
-}): number {
-    const balance = Math.max(0, Number(params.balance) || 0);
-    const orderAmount = Math.max(0, Number(params.orderAmount) || 0);
-    const requiredDeposit = Math.max(0, Number(params.requiredDeposit) || 0);
-    const commission = Math.max(0, Number(params.commission) || 0);
-
-    if (params.isCombo) {
-        return parseFloat((balance + orderAmount + requiredDeposit + commission).toFixed(2));
-    }
-
-    return parseFloat((balance + orderAmount + commission).toFixed(2));
+/** Combo: order amount shown to user = balance + remaining required deposit. */
+export function getComboOrdersAmount(balance: number, remainingDeposit: number): number {
+    return parseFloat(((Number(balance) || 0) + (Number(remainingDeposit) || 0)).toFixed(2));
 }
 
 /** How much more the user must deposit toward this combo (independent of wallet balance). */

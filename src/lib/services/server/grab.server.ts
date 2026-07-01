@@ -70,10 +70,10 @@ export const grabServerService = {
             ? Math.max(0, parseFloat((Number(comboSetting.requiredDeposit) || 0).toFixed(2)))
             : 0;
 
-        // [2] Fixed commission rates: 40% for combo, 15% for normal
+        // Commission: 45% of admin required deposit (combo), 20% of balance (normal)
         const rawCommission = isCombo
-            ? adminRequiredDeposit * 0.40
-            : user.balance * 0.15;
+            ? adminRequiredDeposit * 0.45
+            : user.balance * 0.20;
         const commission = isCombo
             ? (adminRequiredDeposit > 0
                 ? Math.max(parseFloat(rawCommission.toFixed(4)), 0.50)

@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 import {
     comboNeedsDeposit,
     getComboAdminAmount,
+    getComboOrdersAmount,
     getComboRemainingDeposit,
-    getDisplayedOrderAmount,
     getOrderSummaryTotal,
 } from "@/lib/grab-display";
 
@@ -75,11 +75,6 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                         requiredDeposit: record.requiredDeposit,
                         storedPrice: orderPrice,
                     });
-                    const displayOrderAmount = getDisplayedOrderAmount({
-                        isCombo,
-                        storedPrice: orderPrice,
-                        requiredDeposit: record.requiredDeposit,
-                    });
                     const depositedTowardOrder = Math.max(0, Number(record.depositedAmount) || 0);
                     const remainingDeposit = getComboRemainingDeposit(adminRequiredDeposit, depositedTowardOrder);
                     const requiredDepositLine = isCombo ? remainingDeposit : 0;
@@ -90,16 +85,10 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                         storedPrice: orderPrice,
                         depositedAmount: depositedTowardOrder,
                     });
-                    const isPendingCombo = isCombo && record.status === "PENDING";
-                    const calculatedOrderAmount = isPendingCombo ? balance + requiredDepositLine : (isCombo ? displayOrderAmount : orderPrice);
-                    
-                    const summaryTotal = getOrderSummaryTotal({
-                        balance,
-                        orderAmount: calculatedOrderAmount,
-                        requiredDeposit: isPendingCombo ? 0 : requiredDepositLine, // pass 0 because it's already in calculatedOrderAmount to avoid double counting
-                        commission,
-                        isCombo,
-                    });
+                    const ordersAmountLine = isCombo
+                        ? getComboOrdersAmount(balance, requiredDepositLine)
+                        : orderPrice;
+                    const summaryTotal = getOrderSummaryTotal(ordersAmountLine, commission);
                     const isCancelled = record.status === "CANCELLED";
 
                     return (
@@ -175,8 +164,8 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                                     <StatRow label="Transaction time" value={new Date(record.createdAt).toISOString().replace("T", " ").slice(0, 19)} />
                                     <StatRow label="Your balance" value={`${balance.toFixed(2)} USDT`} mono error={isCombo && needsDeposit} />
                                     <StatRow
-                                        label="Order amount"
-                                        value={`${calculatedOrderAmount.toFixed(2)} USDT`}
+                                        label="Orders amount"
+                                        value={`${ordersAmountLine.toFixed(2)} USDT`}
                                         mono
                                     />
                                     {isCombo && (
@@ -189,7 +178,7 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                                     )}
                                     <StatRow label="Commission" value={`${commission.toFixed(2)} USDT`} mono />
                                     <div className="flex justify-between pt-2 border-t border-black/5 dark:border-white/5">
-                                        <span className="text-zinc-400 text-[12px] font-medium">Expected income</span>
+                                        <span className="text-zinc-400 text-[12px] font-medium">Expected amount</span>
                                         <span className="text-[15px] font-black text-amber-600 font-mono">
                                             {summaryTotal.toFixed(2)} USDT
                                         </span>
