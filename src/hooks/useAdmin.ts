@@ -11,7 +11,7 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
     const [invitationRoleFilter, setInvitationRoleFilter] = useState<"ALL" | "ADMIN" | "USER">("ALL");
     const [selectedInviterId, setSelectedInviterId] = useState("");
     const [historySearch, setHistorySearch] = useState("");
-    const [historyTypeFilter, setHistoryTypeFilter] = useState<"ALL" | "DEPOSIT" | "WITHDRAW">("ALL");
+    const [historyTypeFilter, setHistoryTypeFilter] = useState<"ALL" | "DEPOSIT" | "WITHDRAW" | "REGISTERED">("ALL");
     const passwordRequestsQuery = useQuery({
         queryKey: ["admin-password-requests"],
         queryFn: adminService.getPasswordRequests,
@@ -36,6 +36,7 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-pending-transactions"] });
             queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-history"] });
         },
     });
 
@@ -121,6 +122,8 @@ export function useAdmin(options?: { enabledPermissions?: string[]; isSuperAdmin
                 search: historySearch || undefined,
             }),
         enabled: hasPerm("VIEW_HISTORY"),
+        staleTime: 0,
+        refetchInterval: 10000,
     });
 
     const passwordRequestMutation = useMutation({

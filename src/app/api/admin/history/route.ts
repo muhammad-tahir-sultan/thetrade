@@ -9,7 +9,7 @@ import { assertAdminPermission } from "@/lib/services/server/admin-auth.server";
 type AdminHistoryItem = {
     id: string;
     eventType: "USER_REGISTERED" | "TRANSACTION";
-    createdAt: Date;
+    createdAt: string;
     userName: string;
     userEmail: string;
     role: string;
@@ -22,6 +22,16 @@ type AdminHistoryItem = {
     address?: string;
     network?: string;
 };
+
+function toTimestamp(value: unknown): number {
+    const t = new Date(value as string | Date).getTime();
+    return Number.isFinite(t) ? t : 0;
+}
+
+function toIso(value: unknown): string {
+    const t = toTimestamp(value);
+    return t > 0 ? new Date(t).toISOString() : new Date(0).toISOString();
+}
 
 export async function GET(req: Request) {
     try {
@@ -36,72 +46,97 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url);
         const typeFilter = (searchParams.get("type") || "ALL").toUpperCase();
         const search = (searchParams.get("search") || "").trim();
+        const includeRegistrations = typeFilter === "ALL" || typeFilter === "REGISTERED";
 
-        const txQuery: Record<string, any> = {};
+        const txQuery: Record<string, unknown> = {};
         if (typeFilter === "DEPOSIT" || typeFilter === "WITHDRAW") txQuery.type = typeFilter;
-        if (search) {
-            txQuery.$or = [
-                { depositAddress: { $regex: search, $options: "i" } },
-                { withdrawAddress: { $regex: search, $options: "i" } },
-                { withdrawNetwork: { $regex: search, $options: "i" } },
-            ];
-        }
 
-        const [users, txs] = await Promise.all([
-            User.find(search ? {
+        if (search) {
+            const matchingUsers = await User.find({
                 $or: [
                     { name: { $regex: search, $options: "i" } },
                     { email: { $regex: search, $options: "i" } },
                     { invitationCode: { $regex: search, $options: "i" } },
                     { invitedByCode: { $regex: search, $options: "i" } },
                 ],
-            } : {})
-                .select("name email role invitationCode invitedByCode createdAt")
-                .sort({ createdAt: -1 })
-                .limit(300)
-                .lean(),
-            Transaction.find(txQuery)
-                .populate("userId", "name email role invitationCode invitedByCode")
-                .sort({ createdAt: -1 })
-                .limit(500)
-                .lean(),
-        ]);
+            })
+                .select("_id")
+                .lean();
+            const userIds = matchingUsers.map((u: { _id: unknown }) => u._id);
 
-        const registerEvents: AdminHistoryItem[] = users.map((u: any) => ({
+            const txSearchOr: Record<string, unknown>[] = [
+                { depositAddress: { $regex: search, $options: "i" } },
+                { withdrawAddress: { $regex: search, $options: "i" } },
+                { withdrawNetwork: { $regex: search, $options: "i" } },
+            ];
+            if (userIds.length > 0) txSearchOr.push({ userId: { $in: userIds } });
+            txQuery.$or = txSearchOr;
+        }
+
+        const fetches: [Promise<unknown[]>, Promise<unknown[]>] = [
+            includeRegistrations
+                ? User.find(search ? {
+                    $or: [
+                        { name: { $regex: search, $options: "i" } },
+                        { email: { $regex: search, $options: "i" } },
+                        { invitationCode: { $regex: search, $options: "i" } },
+                        { invitedByCode: { $regex: search, $options: "i" } },
+                    ],
+                } : {})
+                    .select("name email role invitationCode invitedByCode createdAt")
+                    .sort({ createdAt: -1 })
+                    .limit(500)
+                    .lean()
+                : Promise.resolve([]),
+            typeFilter === "ALL" || typeFilter === "DEPOSIT" || typeFilter === "WITHDRAW" || typeFilter === "REGISTERED"
+                ? Transaction.find(txQuery)
+                    .populate("userId", "name email role invitationCode invitedByCode")
+                    .sort({ createdAt: -1 })
+                    .limit(500)
+                    .lean()
+                : Promise.resolve([]),
+        ];
+
+        const [users, txs] = await Promise.all(fetches);
+
+        const registerEvents: AdminHistoryItem[] = (users as Array<Record<string, unknown>>).map((u) => ({
             id: `reg-${u._id}`,
             eventType: "USER_REGISTERED",
-            createdAt: u.createdAt,
-            userName: u.name || "Unknown",
-            userEmail: u.email || "—",
-            role: u.role || "USER",
-            invitationCode: u.invitationCode || "",
-            invitedByCode: u.invitedByCode || "",
+            createdAt: toIso(u.createdAt),
+            userName: (u.name as string) || "Unknown",
+            userEmail: (u.email as string) || "—",
+            role: (u.role as string) || "USER",
+            invitationCode: (u.invitationCode as string) || "",
+            invitedByCode: (u.invitedByCode as string) || "",
         }));
 
-        const txEvents: AdminHistoryItem[] = txs.map((tx: any) => ({
-            id: `tx-${tx._id}`,
-            eventType: "TRANSACTION",
-            createdAt: tx.createdAt,
-            userName: tx.userId?.name || "Unknown",
-            userEmail: tx.userId?.email || "—",
-            role: tx.userId?.role || "USER",
-            invitationCode: tx.userId?.invitationCode || "",
-            invitedByCode: tx.userId?.invitedByCode || "",
-            txType: tx.type,
-            direction: tx.type === "DEPOSIT" ? "INCOMING" : "OUTGOING",
-            amount: tx.amount,
-            status: tx.status,
-            address: tx.type === "DEPOSIT" ? tx.depositAddress : tx.withdrawAddress,
-            network: tx.withdrawNetwork || "",
-        }));
+        const txEvents: AdminHistoryItem[] = (txs as Array<Record<string, unknown>>).map((tx) => {
+            const user = tx.userId as Record<string, unknown> | null;
+            return {
+                id: `tx-${tx._id}`,
+                eventType: "TRANSACTION",
+                createdAt: toIso(tx.createdAt),
+                userName: (user?.name as string) || "Unknown",
+                userEmail: (user?.email as string) || "—",
+                role: (user?.role as string) || "USER",
+                invitationCode: (user?.invitationCode as string) || "",
+                invitedByCode: (user?.invitedByCode as string) || "",
+                txType: tx.type as "DEPOSIT" | "WITHDRAW",
+                direction: tx.type === "DEPOSIT" ? "INCOMING" : "OUTGOING",
+                amount: tx.amount as number,
+                status: tx.status as string,
+                address: tx.type === "DEPOSIT" ? (tx.depositAddress as string) : (tx.withdrawAddress as string),
+                network: (tx.withdrawNetwork as string) || "",
+            };
+        });
 
         const events = [...registerEvents, ...txEvents]
-            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .sort((a, b) => toTimestamp(b.createdAt) - toTimestamp(a.createdAt))
             .slice(0, 800);
 
         return NextResponse.json(events);
-    } catch (error: any) {
-        const msg = error.message || "Server error";
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : "Server error";
         return NextResponse.json({ error: msg }, { status: msg === "Forbidden" ? 403 : 500 });
     }
 }

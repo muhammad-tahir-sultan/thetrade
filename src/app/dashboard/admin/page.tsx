@@ -685,7 +685,8 @@ export default function AdminDashboard() {
                                 onChange={(e) => setHistoryTypeFilter(e.target.value as any)}
                                 className="px-3 py-2.5 bg-secondary/5 border border-secondary/10 rounded-xl outline-none text-sm"
                             >
-                                <option value="ALL">All transaction types</option>
+                                <option value="ALL">All activity</option>
+                                <option value="REGISTERED">Signups only</option>
                                 <option value="DEPOSIT">Deposits only</option>
                                 <option value="WITHDRAW">Withdrawals only</option>
                             </select>
@@ -751,9 +752,9 @@ export default function AdminDashboard() {
                                                         <span className="text-xs text-secondary">Account joined</span>
                                                     )}
                                                 </td>
-                                                <td className="p-4 text-xs font-medium text-secondary">
+                                                <td className="p-4 text-xs font-medium text-secondary whitespace-nowrap">
                                                     {new Date(item.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}<br />
-                                                    {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                                    {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                                                 </td>
                                             </tr>
                                         ))}
