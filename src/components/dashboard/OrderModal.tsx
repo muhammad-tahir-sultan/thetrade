@@ -8,6 +8,7 @@ import {
     getComboAdminAmount,
     getComboOrdersAmount,
     getComboRemainingDeposit,
+    getOrderCommission,
     getOrderSummaryTotal,
 } from "@/lib/grab-display";
 import { DepositModal } from "./DepositModal";
@@ -47,7 +48,6 @@ export function OrderModal({
 
     const items = order.items ?? [];
     const orderPrice = Number(order.price) || 0;
-    const commission = Number(order.commission) || 0;
     const isCombo = !!order.isCombo;
     const adminRequiredDeposit = getComboAdminAmount({
         isCombo,
@@ -65,6 +65,7 @@ export function OrderModal({
     const remainingDeposit = getComboRemainingDeposit(adminRequiredDeposit, depositedTowardOrder);
     const requiredDepositLine = isCombo ? remainingDeposit : 0;
     const ordersAmountLine = isCombo ? getComboOrdersAmount(balance, requiredDepositLine) : orderPrice;
+    const commission = getOrderCommission(ordersAmountLine, isCombo);
     const summaryTotal = getOrderSummaryTotal(ordersAmountLine, commission);
 
     return (

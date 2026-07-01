@@ -42,6 +42,18 @@ export function getComboOrdersAmount(balance: number, remainingDeposit: number):
     return parseFloat(((Number(balance) || 0) + (Number(remainingDeposit) || 0)).toFixed(2));
 }
 
+export const COMBO_COMMISSION_RATE = 0.55;
+export const NORMAL_COMMISSION_RATE = 0.25;
+
+/** Commission is always a % of the order amount (not wallet balance). */
+export function getOrderCommission(orderAmount: number, isCombo: boolean): number {
+    const amount = Math.max(0, Number(orderAmount) || 0);
+    if (amount <= 0) return 0;
+    const rate = isCombo ? COMBO_COMMISSION_RATE : NORMAL_COMMISSION_RATE;
+    const raw = amount * rate;
+    return Math.max(parseFloat(raw.toFixed(4)), 0.5);
+}
+
 /** How much more the user must deposit toward this combo (independent of wallet balance). */
 export function getComboRemainingDeposit(requiredDeposit: number, depositedAmount: number): number {
     const required = Math.max(0, Number(requiredDeposit) || 0);

@@ -3,6 +3,7 @@ import GrabOrder from "@/lib/models/GrabOrder";
 import Product from "@/lib/models/Product";
 import dbConnect from "@/lib/mongodb";
 import { findComboSetting, normalizeComboConfig } from "@/lib/combo-config";
+import { getOrderCommission, getComboOrdersAmount, getComboRemainingDeposit } from "@/lib/grab-display";
 
 // Progressive commission rate: starts at 1%, grows ~4% per order (order 1→25 yields 1%→2.6%)
 function getCommissionRate(orderIndex: number): number {
@@ -70,20 +71,12 @@ export const grabServerService = {
             ? Math.max(0, parseFloat((Number(comboSetting.requiredDeposit) || 0).toFixed(2)))
             : 0;
 
-        // Commission: 45% of admin required deposit (combo), 20% of balance (normal)
-        const rawCommission = isCombo
-            ? adminRequiredDeposit * 0.45
-            : user.balance * 0.20;
-        const commission = isCombo
-            ? (adminRequiredDeposit > 0
-                ? Math.max(parseFloat(rawCommission.toFixed(4)), 0.50)
-                : 0)
-            : Math.max(parseFloat(rawCommission.toFixed(4)), 0.50);
-
-        const price = isCombo ? adminRequiredDeposit : user.balance * 0.8;
+        const walletBalance = Math.max(0, Number(user.balance) || 0);
         const finalPrice = isCombo
-            ? parseFloat(adminRequiredDeposit.toFixed(2))
-            : Math.max(parseFloat(price.toFixed(2)), 0.01);
+            ? parseFloat((walletBalance + adminRequiredDeposit).toFixed(2))
+            : Math.max(parseFloat((walletBalance * 0.8).toFixed(2)), 0.01);
+
+        const commission = getOrderCommission(finalPrice, isCombo);
         const productCount = isCombo ? 4 : 1;
         const baseProducts = await this.getRandomProductData(productCount);
         const productName = isCombo ? baseProducts[0].name + " & others" : baseProducts[0].name;
@@ -138,9 +131,22 @@ export const grabServerService = {
         if (typeof user.dailyCommission !== "number") user.dailyCommission = 0;
         if (typeof user.totalCommission !== "number") user.totalCommission = 0;
 
-        user.balance = parseFloat((user.balance + order.commission).toFixed(4));
-        user.totalCommission = parseFloat((user.totalCommission + order.commission).toFixed(4));
-        user.dailyCommission = parseFloat((user.dailyCommission + order.commission).toFixed(4));
+        const walletBalance = Math.max(0, Number(user.balance) || 0);
+        const orderAmount = order.isCombo
+            ? getComboOrdersAmount(
+                walletBalance,
+                getComboRemainingDeposit(
+                    Number(order.requiredDeposit) || 0,
+                    Number(order.depositedAmount) || 0
+                )
+            )
+            : Math.max(0, Number(order.price) || 0);
+        const payoutCommission = getOrderCommission(orderAmount, !!order.isCombo);
+        order.commission = payoutCommission;
+
+        user.balance = parseFloat((user.balance + payoutCommission).toFixed(4));
+        user.totalCommission = parseFloat((user.totalCommission + payoutCommission).toFixed(4));
+        user.dailyCommission = parseFloat((user.dailyCommission + payoutCommission).toFixed(4));
         user.dailyTasksCompleted += 1;
         user.status = "ACTIVE";
         if (user.dailyTasksCompleted >= (user.maxDailyTasks || 25)) {

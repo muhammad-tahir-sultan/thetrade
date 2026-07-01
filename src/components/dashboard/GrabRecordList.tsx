@@ -8,6 +8,7 @@ import {
     getComboAdminAmount,
     getComboOrdersAmount,
     getComboRemainingDeposit,
+    getOrderCommission,
     getOrderSummaryTotal,
 } from "@/lib/grab-display";
 
@@ -69,7 +70,6 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                 ) : filteredRecords.map((record) => {
                     const isCombo = record.isCombo;
                     const orderPrice = Number(record.price) || 0;
-                    const commission = Number(record.commission) || 0;
                     const adminRequiredDeposit = getComboAdminAmount({
                         isCombo,
                         requiredDeposit: record.requiredDeposit,
@@ -88,6 +88,7 @@ export function GrabRecordList({ records, balance = 0, onAction, onDepositRequir
                     const ordersAmountLine = isCombo
                         ? getComboOrdersAmount(balance, requiredDepositLine)
                         : orderPrice;
+                    const commission = getOrderCommission(ordersAmountLine, isCombo);
                     const summaryTotal = getOrderSummaryTotal(ordersAmountLine, commission);
                     const isCancelled = record.status === "CANCELLED";
 
